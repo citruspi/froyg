@@ -15,27 +15,43 @@ import (
 )
 
 var (
-    aws_us_east_1 = session.Must(session.NewSession(&aws.Config{
-        Region: aws.String("us-east-1"),
-    }))
-
-    s3conn = s3.New(aws_us_east_1)
-)
-
-func fetchObject(bucket string, key string) (*s3.GetObjectOutput, error) {
-    requestInput := &s3.GetObjectInput{
-        Bucket: aws.String(bucket),
-        Key:    aws.String(key),
+    s3_regions = []string{
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+        "ca-central-1",
+        "ap-south-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "cn-north-1",
+        "cn-northwest-1",
+        "eu-central-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "sa-east-1",
     }
 
-    return s3conn.GetObject(requestInput)
-}
+    s3conn = make(map[string]*s3.S3)
+)
 
 func main() {
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 3)
+    for _, region := range s3_regions {
+        s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
+            Region: aws.String(region),
+        })))
+    }
 
-        object, err := fetchObject(tokens[1], tokens[2])
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
+
+        object, err := s3conn[tokens[1]].GetObject(&s3.GetObjectInput{
+            Bucket: aws.String(tokens[2]),
+            Key:    aws.String(tokens[3]),
+        })
 
         if err != nil {
             if aerr, ok := err.(awserr.Error); ok {
