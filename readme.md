@@ -1,3 +1,5 @@
+<img src="https://src.beast175.com/citruspi/froyg/raw/master/header.png" width="100%"/>
+
 **Do not run an instance of `froyg` that is open to the Internet unless you're absolutely sure that it is safe to do so. If you have any doubt, do not do it.**
 
 ## Overview
@@ -15,6 +17,30 @@ http://localhost:1815/us-east-1/mybucket/foo/bar/hello-world
 ```
 $ go get -u src.beast175.com/citruspi/froyg
 ```
+
+## Sample Use Cases
+
+- Quickly access an object in S3 (e.g. a text file, a PDF, an image, etc) on your local workstation
+- Backend for Nginx, Varnish, etc.
+- Enable any program which understands HTTP to access objects in S3 without understanding S3
+
+## Todo
+
+- Allow binding to an address other than `:1815`
+- Allow the user to set an explict whitelist of regions which can be accessed
+- Allow the user to set an explict whitelist of buckets which can be accessed
+- Set additional/improved HTTP headers based on S3 object attributes, e.g.
+  - `Cache-Control`
+  - `Content-Disposition`
+  - `Content-Encoding`
+  - `Content-Language`
+  - `Content-Type`
+  - `ETag`
+  - `Expiration`
+  - `Expires`
+  - `LastModified`
+  - `VersionId`
+- Expose S3 object tags via HTTP headers
 
 ## Example
 
