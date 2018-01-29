@@ -41,6 +41,7 @@ $ go get -u src.beast175.com/citruspi/froyg
   - `LastModified`
   - `VersionId`
 - Expose S3 object tags via HTTP headers
+- Provide pre-compiled binaries for Linux and macOS (and make it available as an `rpm` and via `brew`)
 
 ## Example
 
