@@ -1,76 +1,95 @@
 package main
 
 import (
-    "io"
-    "fmt"
-    "log"        
-    "html"
-    "net/http"
-    "strings"
+	"fmt"
+	"html"
+	"io"
+	"log"
+	"mime"
+	"net/http"
+	"path"
+	"strings"
 
-    "github.com/aws/aws-sdk-go/aws"
-    "github.com/aws/aws-sdk-go/aws/awserr"
-    "github.com/aws/aws-sdk-go/aws/session"
-    "github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 var (
-    s3_regions = []string{
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "ca-central-1",
-        "ap-south-1",
-        "ap-northeast-1",
-        "ap-northeast-2",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "cn-north-1",
-        "cn-northwest-1",
-        "eu-central-1",
-        "eu-west-1",
-        "eu-west-2",
-        "eu-west-3",
-        "sa-east-1",
-    }
+	s3_regions = []string{
+		"us-east-1",
+		"us-east-2",
+		"us-west-1",
+		"us-west-2",
+		"ca-central-1",
+		"ap-south-1",
+		"ap-northeast-1",
+		"ap-northeast-2",
+		"ap-southeast-1",
+		"ap-southeast-2",
+		"cn-north-1",
+		"cn-northwest-1",
+		"eu-central-1",
+		"eu-west-1",
+		"eu-west-2",
+		"eu-west-3",
+		"sa-east-1",
+	}
 
-    s3conn = make(map[string]*s3.S3)
+	s3conn = make(map[string]*s3.S3)
 )
 
+func contentTypeForPath(p string) string {
+	content_type := ""
+	extension := path.Ext(p)
+
+	if extension != "" {
+		content_type = mime.TypeByExtension(extension)
+	}
+
+	return content_type
+}
+
 func main() {
-    for _, region := range s3_regions {
-        s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
-            Region: aws.String(region),
-        })))
-    }
+	for _, region := range s3_regions {
+		s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
+			Region: aws.String(region),
+		})))
+	}
 
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
 
-        object, err := s3conn[tokens[1]].GetObject(&s3.GetObjectInput{
-            Bucket: aws.String(tokens[2]),
-            Key:    aws.String(tokens[3]),
-        })
+		object, err := s3conn[tokens[1]].GetObject(&s3.GetObjectInput{
+			Bucket: aws.String(tokens[2]),
+			Key:    aws.String(tokens[3]),
+		})
 
-        if err != nil {
-            if aerr, ok := err.(awserr.Error); ok {
-                switch aerr.Code() {
-                case s3.ErrCodeNoSuchKey:
-                    w.WriteHeader(http.StatusNotFound)
-                default:
-                    fmt.Println(aerr.Error())
-                    w.WriteHeader(http.StatusInternalServerError)
-                }
-            } else {
-                fmt.Println(err.Error())
-                w.WriteHeader(http.StatusInternalServerError)
-            }
-            return
-        }
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				case s3.ErrCodeNoSuchKey:
+					w.WriteHeader(http.StatusNotFound)
+				default:
+					fmt.Println(aerr.Error())
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+			} else {
+				fmt.Println(err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			return
+		}
 
-        io.Copy(w, object.Body)
-    })
+		contentType := contentTypeForPath(tokens[3])
 
-    log.Fatal(http.ListenAndServe(":1815", nil))
+		if contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
+
+		io.Copy(w, object.Body)
+	})
+
+	log.Fatal(http.ListenAndServe(":1815", nil))
 }
