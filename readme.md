@@ -1,4 +1,4 @@
-<img src="https://src.beast175.com/citruspi/froyg/raw/master/header.png" width="100%"/>
+<img src="https://src.beastnet.works/citruspi/froyg/raw/master/header.png" width="100%"/>
 
 **Do not run an instance of `froyg` that is open to the Internet unless you're absolutely sure that it is safe to do so. If you have any doubt, do not do it.**
 
