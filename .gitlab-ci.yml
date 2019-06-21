@@ -1,14 +1,21 @@
-image: golang:1.9.3-alpine3.7
+image: golang:latest
 
 stages:
+  - test
   - build
 
-compile:
-  stage: build
-  before_script:
-    - apk update
-    - apk add git
-    - go get github.com/aws/aws-sdk-go/...
+go_fmt:
+  stage: test
   script:
-    - go build main.go
+    - go fmt
 
+go_vet:
+  stage: test
+  script:
+    - go vet -c 3
+
+build_golang_1_12_5:
+  stage: build
+  image: golang:1.12.5-stretch
+  script:
+    - go build .
