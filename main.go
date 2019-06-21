@@ -84,7 +84,7 @@ func main() {
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
 				switch aerr.Code() {
-				case s3.ErrCodeNoSuchKey:
+				case s3.ErrCodeNoSuchKey, s3.ErrCodeNoSuchBucket:
 					w.WriteHeader(http.StatusNotFound)
 				default:
 					fmt.Println(aerr.Error())
