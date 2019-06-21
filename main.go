@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	s3_regions = []string{
+	s3Regions = []string{
 		"us-east-1",
 		"us-east-2",
 		"us-west-1",
@@ -41,18 +41,18 @@ var (
 )
 
 func contentTypeForPath(p string) string {
-	content_type := ""
+	contentType := ""
 	extension := path.Ext(p)
 
 	if extension != "" {
-		content_type = mime.TypeByExtension(extension)
+		contentType = mime.TypeByExtension(extension)
 	}
 
-	return content_type
+	return contentType
 }
 
 func main() {
-	for _, region := range s3_regions {
+	for _, region := range s3Regions {
 		s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
 			Region: aws.String(region),
 		})))
