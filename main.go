@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html"
 	"io"
@@ -15,6 +16,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+type Configuration struct {
+	BindAddress string
+}
 
 var (
 	s3Regions = []string{
@@ -38,6 +43,8 @@ var (
 	}
 
 	s3conn = make(map[string]*s3.S3)
+
+	conf = &Configuration{}
 )
 
 func contentTypeForPath(p string) string {
@@ -51,7 +58,15 @@ func contentTypeForPath(p string) string {
 	return contentType
 }
 
+func parseFlags() {
+	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
+
+	flag.Parse()
+}
+
 func main() {
+	parseFlags()
+
 	for _, region := range s3Regions {
 		s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
 			Region: aws.String(region),
@@ -91,5 +106,5 @@ func main() {
 		io.Copy(w, object.Body)
 	})
 
-	log.Fatal(http.ListenAndServe(":1815", nil))
+	log.Fatal(http.ListenAndServe(conf.BindAddress, nil))
 }
