@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"html"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"path"
@@ -15,10 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	log "github.com/sirupsen/logrus"
 )
 
 type Configuration struct {
 	BindAddress string
+	LogJSON     bool
 }
 
 var (
@@ -60,12 +60,22 @@ func contentTypeForPath(p string) string {
 
 func parseFlags() {
 	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
+	flag.BoolVar(&conf.LogJSON, "log-json", false, "json log format")
 
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+
+	if conf.LogJSON {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else {
+		log.SetFormatter(&log.TextFormatter{
+			FullTimestamp:          true,
+			DisableLevelTruncation: true,
+		})
+	}
 
 	for _, region := range s3Regions {
 		s3conn[region] = s3.New(session.Must(session.NewSession(&aws.Config{
@@ -74,6 +84,13 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		reqLog := log.WithFields(log.Fields{
+			"req_url":      r.URL.String(),
+			"req_headers":  r.Header,
+			"req_addr":     r.RemoteAddr,
+			"req_referrer": r.Referer(),
+		})
+
 		tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
 
 		object, err := s3conn[tokens[1]].GetObject(&s3.GetObjectInput{
@@ -82,18 +99,25 @@ func main() {
 		})
 
 		if err != nil {
+			var status int
+
 			if aerr, ok := err.(awserr.Error); ok {
 				switch aerr.Code() {
 				case s3.ErrCodeNoSuchKey, s3.ErrCodeNoSuchBucket:
-					w.WriteHeader(http.StatusNotFound)
+					status = http.StatusNotFound
 				default:
-					fmt.Println(aerr.Error())
-					w.WriteHeader(http.StatusInternalServerError)
+					status = http.StatusInternalServerError
 				}
+
+				reqLog.Data["error"] = aerr.Message()
 			} else {
-				fmt.Println(err.Error())
-				w.WriteHeader(http.StatusInternalServerError)
+				status = http.StatusInternalServerError
+				reqLog.Data["error"] = err.Error()
 			}
+
+			w.WriteHeader(status)
+			reqLog.WithField("resp_code", status).Errorln("")
+
 			return
 		}
 
@@ -103,8 +127,19 @@ func main() {
 			w.Header().Set("Content-Type", contentType)
 		}
 
-		io.Copy(w, object.Body)
+		_, err = io.Copy(w, object.Body)
+
+		if err != nil {
+			reqLog.WithFields(log.Fields{
+				"resp_code": http.StatusOK,
+				"error":     err,
+			}).Warnln("")
+		} else {
+			reqLog.WithFields(log.Fields{
+				"resp_code": http.StatusOK,
+			}).Infoln("")
+		}
 	})
 
-	log.Fatal(http.ListenAndServe(conf.BindAddress, nil))
+	log.Fatalln(http.ListenAndServe(conf.BindAddress, nil))
 }
