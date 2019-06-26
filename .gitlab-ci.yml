@@ -21,10 +21,6 @@ build:
   stage: build
   script:
     - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_SHA" .
-  artifacts:
-    paths:
-      - bin/*
-    expire_in: 1 day
 
 .xcompile:
   stage: xcompile
@@ -35,51 +31,122 @@ build:
       - bin/*
     expire_in: 1 day
 
-xcompile_linux_386_linked:
+linux_386:
   extends: .xcompile
   before_script:
     - export GOOS=linux
     - export GOARCH=386
 
-xcompile_linux_amd64_linked:
+linux_amd64:
   extends: .xcompile
   before_script:
     - export GOOS=linux
     - export GOARCH=amd64
 
-xcompile_linux_arm_linked:
+linux_arm:
   extends: .xcompile
   before_script:
     - export GOOS=linux
     - export GOARCH=arm
 
-xcompile_linux_arm64_linked:
+linux_arm64:
   extends: .xcompile
   before_script:
     - export GOOS=linux
     - export GOARCH=arm64
 
-
-xcompile_darwin_386_linked:
+darwin_386:
   extends: .xcompile
   before_script:
     - export GOOS=darwin
     - export GOARCH=386
 
-xcompile_darwin_amd64_linked:
+darwin_amd64:
   extends: .xcompile
   before_script:
     - export GOOS=darwin
     - export GOARCH=amd64
 
-xcompile_darwin_arm_linked:
+darwin_arm:
   extends: .xcompile
   before_script:
     - export GOOS=darwin
     - export GOARCH=arm
 
-xcompile_darwin_arm64_linked:
+darwin_arm64:
   extends: .xcompile
   before_script:
     - export GOOS=darwin
     - export GOARCH=arm64
+
+windows_386:
+  extends: .xcompile
+  before_script:
+    - export GOOS=windows
+    - export GOARCH=386
+
+windows_arm64:
+  extends: .xcompile
+  before_script:
+    - export GOOS=windows
+    - export GOARCH=arm64
+
+dragonfly_amd64:
+  extends: .xcompile
+  before_script:
+    - export GOOS=dragonfly
+    - export GOARCH=amd64
+
+freebsd_386:
+  extends: .xcompile
+  before_script:
+    - export GOOS=freebsd
+    - export GOARCH=386
+
+freebsd_amd64:
+  extends: .xcompile
+  before_script:
+    - export GOOS=freebsd
+    - export GOARCH=amd64
+
+freebsd_arm:
+  extends: .xcompile
+  before_script:
+    - export GOOS=freebsd
+    - export GOARCH=arm
+
+netbsd_386:
+  extends: .xcompile
+  before_script:
+    - export GOOS=netbsd
+    - export GOARCH=386
+
+netbsd_amd64:
+  extends: .xcompile
+  before_script:
+    - export GOOS=netbsd
+    - export GOARCH=amd64
+
+netbsd_arm:
+  extends: .xcompile
+  before_script:
+    - export GOOS=netbsd
+    - export GOARCH=arm
+
+openbsd_386:
+  extends: .xcompile
+  before_script:
+    - export GOOS=openbsd
+    - export GOARCH=386
+
+openbsd_amd64:
+  extends: .xcompile
+  before_script:
+    - export GOOS=openbsd
+    - export GOARCH=amd64
+
+openbsd_arm:
+  extends: .xcompile
+  before_script:
+    - export GOOS=openbsd
+    - export GOARCH=arm
