@@ -6,6 +6,7 @@ stages:
   - test
   - build
   - xcompile
+  - release
 
 go_fmt:
   stage: test
@@ -143,3 +144,8 @@ openbsd_arm:
   before_script:
     - export GOOS=openbsd
     - export GOARCH=arm
+
+push:
+  stage: release
+  script:
+    - publish
