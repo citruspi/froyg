@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +24,12 @@ type objectRequest struct {
 }
 
 func httpHandler(w http.ResponseWriter, r *http.Request) {
-	o := &objectRequest{}
+	rawUUID := uuid.Must(uuid.NewV4(), nil)
+
+	o := &objectRequest{
+		log: logrus.WithField("request_id", rawUUID.String()),
+	}
+
 	o.readHttpRequest(r)
 	o.writeHttpResponse(w)
 }
@@ -32,6 +38,13 @@ func (o *objectRequest) readHttpRequest(r *http.Request) {
 	var s3Region string
 	var s3Bucket *string
 	var s3Key *string
+
+	o.log.WithFields(logrus.Fields{
+		"req_url":      r.URL.String(),
+		"req_headers":  r.Header,
+		"req_addr":     r.RemoteAddr,
+		"req_referrer": r.Referer(),
+	}).Infoln("reading http request")
 
 	tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
 
@@ -61,9 +74,14 @@ func (o *objectRequest) readHttpRequest(r *http.Request) {
 		SSECustomerKeyMD5:          nil,
 		VersionId:                  nil,
 	}
+
+	o.log.WithFields(logrus.Fields{
+		"s3_region":     o.s3Region,
+		"s3_object_req": o.s3ObjectRequest,
+	}).Debugln("http request loaded")
 }
 
-func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int, error) {
+func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
 
 	if err != nil {
@@ -82,16 +100,23 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int, error)
 			errStatus = http.StatusInternalServerError
 		}
 
-		return nil, nil, errStatus, err
+		o.log.WithField("error", err).Errorln("error retrieving object from backend")
+
+		return nil, nil, errStatus
 	}
 
 	headers := make(map[string]string)
 
-	return object.Body, headers, http.StatusOK, nil
+	return object.Body, headers, http.StatusOK
 }
 
 func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
-	body, headers, status, err := o.fetchObject()
+	body, headers, status := o.fetchObject()
+
+	o.log.WithFields(logrus.Fields{
+		"resp_headers":     headers,
+		"resp_status_code": status,
+	}).Infoln("writing http response")
 
 	if headers != nil {
 		for header, val := range headers {
@@ -101,9 +126,13 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 
 	w.WriteHeader(status)
 
-	if err != nil {
+	if body == nil {
 		return
 	}
 
-	_, err = io.Copy(w, body)
+	_, err := io.Copy(w, body)
+
+	if err != nil {
+		o.log.WithField("error", err).Warnln("error writing response body")
+	}
 }

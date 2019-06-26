@@ -12,7 +12,6 @@ import (
 
 type Configuration struct {
 	BindAddress string
-	LogJSON     bool
 }
 
 var (
@@ -43,17 +42,24 @@ var (
 
 func init() {
 	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
-	flag.BoolVar(&conf.LogJSON, "log-json", false, "json log format")
+	logJson := flag.Bool("log-json", false, "json log format")
+	logLevel := flag.Int("v", 4, "verbosity (1-7; panic, fatal, error, warn, info, debug, trace)")
 
 	flag.Parse()
 
-	if conf.LogJSON {
+	if *logJson {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else {
 		log.SetFormatter(&log.TextFormatter{
 			FullTimestamp:          true,
 			DisableLevelTruncation: true,
 		})
+	}
+
+	if (1 <= *logLevel) && (*logLevel <= 7) {
+		log.SetLevel(log.Level(*logLevel))
+	} else {
+		log.Fatalln("log level must be between 1 and 7 (inclusive)")
 	}
 
 	for _, region := range s3Regions {
