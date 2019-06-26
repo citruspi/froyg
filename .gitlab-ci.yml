@@ -67,29 +67,17 @@ darwin_amd64:
     - export GOOS=darwin
     - export GOARCH=amd64
 
-darwin_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=arm
-
-darwin_arm64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=arm64
-
 windows_386:
   extends: .xcompile
   before_script:
     - export GOOS=windows
     - export GOARCH=386
 
-windows_arm64:
+windows_amd64:
   extends: .xcompile
   before_script:
     - export GOOS=windows
-    - export GOARCH=arm64
+    - export GOARCH=amd64
 
 dragonfly_amd64:
   extends: .xcompile
