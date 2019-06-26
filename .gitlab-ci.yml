@@ -1,10 +1,11 @@
-image: golang:latest
+image: golang:1.12.5-stretch
 
 before_script:
   - mkdir bin
 stages:
   - test
   - build
+  - release
 
 go_fmt:
   stage: test
@@ -16,12 +17,69 @@ go_vet:
   script:
     - go vet -c 3
 
-build_linked:
+build:
   stage: build
-  image: golang:1.12.5-stretch
   script:
-    - GOOS=linux GOARCH=amd64 go build -o bin/froyg.$GOOS.$GOARCH -ldflags "-X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_SHA" .
   artifacts:
     paths:
       - bin/*
     expire_in: 1 day
+
+.release:
+  stage: release
+  script:
+    - go build -o bin/froyg.$GOOS.$GOARCH -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+  artifacts:
+    paths:
+      - bin/*
+    expire_in: 1 day
+
+release_linux_386_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=linux
+    - EXPORT GOARCH=386
+
+release_linux_amd64_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=linux
+    - EXPORT GOARCH=amd64
+
+release_linux_arm_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=linux
+    - EXPORT GOARCH=arm
+
+release_linux_arm64_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=linux
+    - EXPORT GOARCH=arm64
+
+
+release_darwin_386_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=darwin
+    - EXPORT GOARCH=386
+
+release_darwin_amd64_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=darwin
+    - EXPORT GOARCH=amd64
+
+release_darwin_arm_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=darwin
+    - EXPORT GOARCH=arm
+
+release_darwin_arm64_linked:
+  extends: .release
+  before_script:
+    - EXPORT GOOS=darwin
+    - EXPORT GOARCH=arm64
