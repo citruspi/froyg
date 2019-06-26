@@ -5,6 +5,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,12 +31,20 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 		log: logrus.WithField("request_id", rawUUID.String()),
 	}
 
-	o.readHttpRequest(r)
+	status := o.readHttpRequest(r)
+
+	if status != http.StatusOK {
+		o.log.WithField("resp_status_code", status).Infoln("writing http response")
+
+		w.WriteHeader(status)
+		return
+	}
+
 	o.writeHttpResponse(w)
 }
 
-func (o *objectRequest) readHttpRequest(r *http.Request) {
-	var s3Region string
+func (o *objectRequest) readHttpRequest(r *http.Request) int {
+	var s3Region *string
 	var s3Bucket *string
 	var s3Key *string
 
@@ -46,13 +55,38 @@ func (o *objectRequest) readHttpRequest(r *http.Request) {
 		"req_referrer": r.Referer(),
 	}).Infoln("reading http request")
 
-	tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
+	if s3BucketHeader, ok := r.Header["X-S3-Bucket"]; ok {
+		s3Bucket = &s3BucketHeader[0]
 
-	s3Region = tokens[1]
-	s3Bucket = &tokens[2]
-	s3Key = &tokens[3]
+		if s3RegionHeader, ok := r.Header["X-S3-Region"]; ok {
+			s3Region = &s3RegionHeader[0]
 
-	o.s3Region = s3Region
+			if s3KeyPrefixHeader, ok := r.Header["X-S3-Key-Prefix"]; ok {
+				key := path.Join(s3KeyPrefixHeader[0], r.URL.Path)
+				s3Key = &key
+			} else {
+				s3Key = &r.URL.Path
+			}
+		} else {
+			o.log.Warnln("malformed header routing request")
+		}
+	} else {
+		tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
+
+		if len(tokens) < 4 {
+			o.log.Warnln("malformed path routing request")
+		} else {
+			s3Region = &tokens[1]
+			s3Bucket = &tokens[2]
+			s3Key = &tokens[3]
+		}
+	}
+
+	if s3Region == nil || s3Bucket == nil || s3Key == nil {
+		return http.StatusBadRequest
+	}
+
+	o.s3Region = *s3Region
 	o.s3ObjectRequest = &s3.GetObjectInput{
 		Bucket:                     s3Bucket,
 		IfMatch:                    nil,
@@ -79,6 +113,8 @@ func (o *objectRequest) readHttpRequest(r *http.Request) {
 		"s3_region":     o.s3Region,
 		"s3_object_req": o.s3ObjectRequest,
 	}).Debugln("http request loaded")
+
+	return http.StatusOK
 }
 
 func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
