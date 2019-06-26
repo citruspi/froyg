@@ -234,6 +234,7 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 		}
 	}
 
+	w.Header().Set("X-Request-Id", o.log.Data["request_id"].(string))
 	w.WriteHeader(status)
 
 	if body == nil {
