@@ -151,3 +151,5 @@ publish:
   stage: release
   script:
     - publish
+  only:
+    - tags
