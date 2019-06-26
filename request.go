@@ -27,10 +27,14 @@ type objectRequest struct {
 }
 
 func httpHandler(w http.ResponseWriter, r *http.Request) {
-	rawUUID := uuid.Must(uuid.NewV4(), nil)
+	requestId := r.Header.Get("X-Request-Id")
+
+	if requestId == "" {
+		requestId = uuid.Must(uuid.NewV4(), nil).String()
+	}
 
 	o := &objectRequest{
-		log: logrus.WithField("request_id", rawUUID.String()),
+		log: logrus.WithField("request_id", requestId),
 	}
 
 	status := o.readHttpRequest(r)
