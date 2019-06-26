@@ -107,6 +107,27 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 
 	headers := make(map[string]string)
 
+	rawHeaders := map[string]*string{
+		"Cache-Control":       object.CacheControl,
+		"Content-Disposition": object.ContentDisposition,
+		"Content-Encoding":    object.ContentEncoding,
+		"Content-Language":    object.ContentLanguage,
+		"Content-Range":       object.ContentRange,
+		"Content-Type":        object.ContentType,
+		"ETag":                object.ETag,
+		"Expires":             object.Expires,
+	}
+
+	for header, val := range rawHeaders {
+		if val != nil {
+			headers[header] = *val
+		}
+	}
+
+	if object.LastModified != nil {
+		headers["Last-Modified"] = object.LastModified.Format(http.TimeFormat)
+	}
+
 	return object.Body, headers, http.StatusOK
 }
 
