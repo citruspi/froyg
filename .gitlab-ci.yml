@@ -25,10 +25,15 @@ build:
 .xcompile:
   stage: xcompile
   script:
-    - go build -o bin/froyg.$GOOS.$GOARCH -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - export label="froyg-$CI_COMMIT_REF_SLUG-$GOOS.$GOARCH"
+    - rm -rf $label
+    - mkdir $label
+    - go build -o $label/froyg -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - cp LICENSE $label/
+    - tar cfJ $label.tar.xf $label
   artifacts:
     paths:
-      - bin/*
+      - "*.tar.xf"
     expire_in: 1 day
 
 linux_386:
