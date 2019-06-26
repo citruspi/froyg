@@ -20,7 +20,7 @@ build_linked:
   stage: build
   image: golang:1.12.5-stretch
   script:
-    - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - GOOS=linux GOARCH=amd64 go build -o bin/froyg.$GOOS.$GOARCH -ldflags "-X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
   artifacts:
     paths:
       - bin/*
