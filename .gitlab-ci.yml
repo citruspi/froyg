@@ -8,12 +8,12 @@ stages:
   - xcompile
   - release
 
-go_fmt:
+fmt:
   stage: test
   script:
     - go fmt
 
-go_vet:
+vet:
   stage: test
   script:
     - go vet -c 3
@@ -26,7 +26,7 @@ build:
 .xcompile:
   stage: xcompile
   script:
-    - export label="froyg-$CI_COMMIT_REF_SLUG-$GOOS.$GOARCH"
+    - export label="froyg-$GOOS.$GOARCH-$CI_COMMIT_REF_SLUG"
     - rm -rf $label
     - mkdir $label
     - go build -o $label/froyg -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
@@ -36,6 +36,8 @@ build:
     paths:
       - "*.tar.xf"
     expire_in: 1 day
+  only:
+    - tags
 
 linux_386:
   extends: .xcompile
@@ -145,7 +147,7 @@ openbsd_arm:
     - export GOOS=openbsd
     - export GOARCH=arm
 
-push:
+publish:
   stage: release
   script:
     - publish
