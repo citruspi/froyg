@@ -13,9 +13,24 @@ http://localhost:1815/us-east-1/mybucket/foo/bar/hello-world
 ```
 
 ## Installation
+From source:
 
 ```
-$ go get -u src.beast175.com/citruspi/froyg
+$ go get -u src.101c0d3.run/citruspi/froyg
+```
+
+Binaries for the following operating systems and architectures are also built and released for tagged versions at [releases.beastnet.works](#).
+
+```
+https://releases.beastnet.works/froyg/froyg-{OS}.{ARCH}-{REF}.tar.xf
+
+Darwin          386 / amd64
+Linux           386 / amd64 / arm / arm64
+Windows         386 / amd64
+Dragonfly       amd64
+FreeBSD         386 / amd64 / arm
+NetBSD          386 / amd64 / arm
+OpenBSD         386 / amd64 / arm
 ```
 
 ## Sample Use Cases
@@ -26,22 +41,25 @@ $ go get -u src.beast175.com/citruspi/froyg
 
 ## Todo
 
-- Allow binding to an address other than `:1815`
+- ~~Allow binding to an address other than `:1815`~~
 - Allow the user to set an explict whitelist of regions which can be accessed
 - Allow the user to set an explict whitelist of buckets which can be accessed
 - Set additional/improved HTTP headers based on S3 object attributes, e.g.
-  - `Cache-Control`
-  - `Content-Disposition`
-  - `Content-Encoding`
-  - `Content-Language`
-  - `Content-Type`
-  - `ETag`
-  - `Expiration`
-  - `Expires`
-  - `LastModified`
+  - ~~`Cache-Control`~~
+  - ~~`Content-Disposition`~~
+  - ~~`Content-Encoding`~~
+  - ~~`Content-Language`~~
+  - ~~`Content-Type`~~
+  - ~~`ETag`~~
+  - ~~`Expiration`~~
+  - ~~`Expires`~~
+  - ~~`LastModified`~~
   - `VersionId`
+- ~~Extended logging~~
+- ~~Support for path and header routing~~
+- ~~Support for falling back to an index file~~
 - Expose S3 object tags via HTTP headers
-- Provide pre-compiled binaries for Linux and macOS (and make it available as an `rpm` and via `brew`)
+- ~~Provide pre-compiled binaries for Linux and macOS~~ (and make it available as an `rpm` and via `brew`)
 
 ## Example
 
