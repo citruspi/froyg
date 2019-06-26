@@ -26,10 +26,10 @@ build:
 .xcompile:
   stage: xcompile
   script:
-    - export label="froyg-$GOOS.$GOARCH-$CI_COMMIT_REF_SLUG"
+    - export label="froyg-$GOOS.$GOARCH-$CI_COMMIT_TAG"
     - rm -rf $label
     - mkdir $label
-    - go build -o $label/froyg -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - go build -o $label/froyg -ldflags "-w -X main.version=$CI_COMMIT_TAG-$CI_COMMIT_SHORT_SHA" .
     - cp LICENSE $label/
     - tar cfJ $label.tar.xf $label
   artifacts:
