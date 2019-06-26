@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,6 +18,8 @@ type Configuration struct {
 }
 
 var (
+	version string = "unset"
+
 	s3Regions = []string{
 		"us-east-1",
 		"us-east-2",
@@ -44,10 +48,16 @@ var (
 func init() {
 	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
 	flag.StringVar(&conf.IndexFile, "index", "index.html", "index file")
+	versionFlag := flag.Bool("version", false, "show version and exit")
 	logJson := flag.Bool("log-json", false, "json log format")
 	logLevel := flag.Int("v", 4, "verbosity (1-7; panic, fatal, error, warn, info, debug, trace)")
 
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	if *logJson {
 		log.SetFormatter(&log.JSONFormatter{})

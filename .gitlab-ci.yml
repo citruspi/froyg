@@ -1,5 +1,7 @@
 image: golang:latest
 
+before_script:
+  - mkdir bin
 stages:
   - test
   - build
@@ -14,8 +16,12 @@ go_vet:
   script:
     - go vet -c 3
 
-build_golang_1_12_5:
+build_linked:
   stage: build
   image: golang:1.12.5-stretch
   script:
-    - go build .
+    - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+  artifacts:
+    paths:
+      - bin/*
+    expire_in: 1 day
