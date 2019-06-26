@@ -158,40 +158,68 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 		VersionId:         stringHeaders["X-S3-Object-Version"],
 	}
 
-	o.log.WithFields(logrus.Fields{
-		"s3_region":     o.s3Region,
-		"s3_object_req": o.s3ObjectRequest,
-	}).Debugln("http request loaded")
-
 	return http.StatusOK
 }
 
-func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
-	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
+func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, int) {
+	var object *s3.GetObjectOutput
+	var err error
+
+	status := http.StatusOK
+
+	if strings.TrimSpace(*o.s3ObjectRequest.Key) == "/" {
+		o.s3ObjectRequest.Key = &conf.IndexFile
+		secondPass = true
+	}
+
+	o.log.WithFields(logrus.Fields{
+		"s3_region":     o.s3Region,
+		"s3_object_req": o.s3ObjectRequest,
+	}).Debugln("establishing upstream request")
+
+	object, err = s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
 
 	if err != nil {
-		var errStatus int
-
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-			case s3.ErrCodeNoSuchKey, s3.ErrCodeNoSuchBucket:
-				errStatus = http.StatusNotFound
+			case s3.ErrCodeNoSuchKey:
+				if secondPass {
+					status = http.StatusNotFound
+				} else {
+					gnuKey := path.Join(*o.s3ObjectRequest.Key, conf.IndexFile)
+					o.s3ObjectRequest.Key = &gnuKey
+
+					object, status = o.upstreamRequest(true)
+				}
+			case s3.ErrCodeNoSuchBucket:
+				status = http.StatusNotFound
 			default:
-				errStatus = http.StatusInternalServerError
+				switch aerr.Code() {
+				case "NotModified":
+					status = http.StatusNotModified
+				default:
+					status = http.StatusInternalServerError
+				}
 			}
 
 			err = errors.New(aerr.Message())
 		} else {
-			errStatus = http.StatusInternalServerError
+			status = http.StatusInternalServerError
 		}
 
-		if err.Error() == "Not Modified" {
-			return nil, nil, http.StatusNotModified
-		} else {
+		if status >= http.StatusBadRequest {
 			o.log.WithField("error", err).Errorln("error retrieving object from backend")
-
-			return nil, nil, errStatus
 		}
+	}
+
+	return object, status
+}
+
+func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
+	object, status := o.upstreamRequest(false)
+
+	if status != http.StatusOK {
+		return nil, nil, status
 	}
 
 	headers := make(map[string]string)
