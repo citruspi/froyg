@@ -6,7 +6,9 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -86,27 +88,70 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 		return http.StatusBadRequest
 	}
 
+	stringHeaders := make(map[string]*string)
+	timeHeaders := make(map[string]*time.Time)
+
+	rawStringHeaders := []string{
+		"If-Match",
+		"If-None-Match",
+		"Range",
+		"X-S3-Object-Version",
+	}
+
+	rawTimeHeaders := []string{
+		"If-Modified-Since",
+		"If-Unmodified-Since",
+	}
+
+	for _, header := range rawStringHeaders {
+		if headerVal, ok := r.Header[header]; ok {
+			stringHeaders[header] = &headerVal[0]
+		} else {
+			stringHeaders[header] = nil
+		}
+	}
+
+	for _, header := range rawTimeHeaders {
+		if headerVal, ok := r.Header[header]; ok {
+			rawTime, err := time.Parse(http.TimeFormat, headerVal[0])
+
+			if err != nil {
+				o.log.WithField("time", headerVal[0]).Warnln("malformed time header")
+
+				return http.StatusBadRequest
+			}
+
+			timeHeaders[header] = &rawTime
+		} else {
+			timeHeaders[header] = nil
+		}
+	}
+
+	var partNo *int64
+
+	if partNoHeader, ok := r.Header["X-S3-Object-Part"]; ok {
+		partNoRaw, err := strconv.ParseInt(partNoHeader[0], 10, 64)
+
+		if err != nil {
+			o.log.WithField("part_no", partNoHeader[0]).Warnln("malformed object part no")
+
+			return http.StatusBadRequest
+		}
+
+		partNo = &partNoRaw
+	}
+
 	o.s3Region = *s3Region
 	o.s3ObjectRequest = &s3.GetObjectInput{
-		Bucket:                     s3Bucket,
-		IfMatch:                    nil,
-		IfModifiedSince:            nil,
-		IfNoneMatch:                nil,
-		IfUnmodifiedSince:          nil,
-		Key:                        s3Key,
-		PartNumber:                 nil,
-		Range:                      nil,
-		RequestPayer:               nil,
-		ResponseCacheControl:       nil,
-		ResponseContentDisposition: nil,
-		ResponseContentEncoding:    nil,
-		ResponseContentLanguage:    nil,
-		ResponseContentType:        nil,
-		ResponseExpires:            nil,
-		SSECustomerAlgorithm:       nil,
-		SSECustomerKey:             nil,
-		SSECustomerKeyMD5:          nil,
-		VersionId:                  nil,
+		Bucket:            s3Bucket,
+		IfMatch:           stringHeaders["If-Match"],
+		IfModifiedSince:   timeHeaders["If-Modified-Since"],
+		IfNoneMatch:       stringHeaders["If-None-Match"],
+		IfUnmodifiedSince: timeHeaders["If-Unmodified-Since"],
+		Key:               s3Key,
+		PartNumber:        partNo,
+		Range:             stringHeaders["Range"],
+		VersionId:         stringHeaders["X-S3-Object-Version"],
 	}
 
 	o.log.WithFields(logrus.Fields{
@@ -136,9 +181,13 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 			errStatus = http.StatusInternalServerError
 		}
 
-		o.log.WithField("error", err).Errorln("error retrieving object from backend")
+		if err.Error() == "Not Modified" {
+			return nil, nil, http.StatusNotModified
+		} else {
+			o.log.WithField("error", err).Errorln("error retrieving object from backend")
 
-		return nil, nil, errStatus
+			return nil, nil, errStatus
+		}
 	}
 
 	headers := make(map[string]string)
