@@ -5,7 +5,7 @@ before_script:
 stages:
   - test
   - build
-  - release
+  - xcompile
 
 go_fmt:
   stage: test
@@ -26,8 +26,8 @@ build:
       - bin/*
     expire_in: 1 day
 
-.release:
-  stage: release
+.xcompile:
+  stage: xcompile
   script:
     - go build -o bin/froyg.$GOOS.$GOARCH -ldflags "-w -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
   artifacts:
@@ -35,51 +35,51 @@ build:
       - bin/*
     expire_in: 1 day
 
-release_linux_386_linked:
-  extends: .release
+xcompile_linux_386_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=linux
-    - EXPORT GOARCH=386
+    - export GOOS=linux
+    - export GOARCH=386
 
-release_linux_amd64_linked:
-  extends: .release
+xcompile_linux_amd64_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=linux
-    - EXPORT GOARCH=amd64
+    - export GOOS=linux
+    - export GOARCH=amd64
 
-release_linux_arm_linked:
-  extends: .release
+xcompile_linux_arm_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=linux
-    - EXPORT GOARCH=arm
+    - export GOOS=linux
+    - export GOARCH=arm
 
-release_linux_arm64_linked:
-  extends: .release
+xcompile_linux_arm64_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=linux
-    - EXPORT GOARCH=arm64
+    - export GOOS=linux
+    - export GOARCH=arm64
 
 
-release_darwin_386_linked:
-  extends: .release
+xcompile_darwin_386_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=darwin
-    - EXPORT GOARCH=386
+    - export GOOS=darwin
+    - export GOARCH=386
 
-release_darwin_amd64_linked:
-  extends: .release
+xcompile_darwin_amd64_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=darwin
-    - EXPORT GOARCH=amd64
+    - export GOOS=darwin
+    - export GOARCH=amd64
 
-release_darwin_arm_linked:
-  extends: .release
+xcompile_darwin_arm_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=darwin
-    - EXPORT GOARCH=arm
+    - export GOOS=darwin
+    - export GOARCH=arm
 
-release_darwin_arm64_linked:
-  extends: .release
+xcompile_darwin_arm64_linked:
+  extends: .xcompile
   before_script:
-    - EXPORT GOOS=darwin
-    - EXPORT GOARCH=arm64
+    - export GOOS=darwin
+    - export GOARCH=arm64
