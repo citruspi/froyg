@@ -55,11 +55,16 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 	var s3Key *string
 
 	o.log.WithFields(logrus.Fields{
+		"req_method":   r.Method,
 		"req_url":      r.URL.String(),
 		"req_headers":  r.Header,
 		"req_addr":     r.RemoteAddr,
 		"req_referrer": r.Referer(),
 	}).Infoln("reading http request")
+
+	if r.Method != http.MethodGet {
+		return http.StatusMethodNotAllowed
+	}
 
 	if s3BucketHeader, ok := r.Header["X-S3-Bucket"]; ok {
 		s3Bucket = &s3BucketHeader[0]
