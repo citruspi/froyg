@@ -238,6 +238,7 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 		"Content-Type":        object.ContentType,
 		"ETag":                object.ETag,
 		"Expires":             object.Expires,
+		"X-S3-Object-Version": object.VersionId,
 	}
 
 	for header, val := range rawHeaders {
