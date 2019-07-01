@@ -92,6 +92,11 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 		return http.StatusBadRequest
 	}
 
+	if _, ok := s3conn[*s3Region]; !ok {
+		o.log.WithField("region", *s3Region).Warnln("unregistered S3 region requested")
+		return http.StatusBadRequest
+	}
+
 	stringHeaders := make(map[string]*string)
 	timeHeaders := make(map[string]*time.Time)
 
