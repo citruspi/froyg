@@ -202,6 +202,8 @@ func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, i
 				switch aerr.Code() {
 				case "NotModified":
 					status = http.StatusNotModified
+				case "PreconditionFailed":
+					status = http.StatusPreconditionFailed
 				default:
 					status = http.StatusInternalServerError
 				}
