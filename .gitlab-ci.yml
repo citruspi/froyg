@@ -26,10 +26,10 @@ build:
 .xcompile:
   stage: xcompile
   script:
-    - export label="froyg-$GOOS.$GOARCH-$CI_COMMIT_TAG"
+    - export label="froyg-$GOOS.$GOARCH$XLABEL-$CI_COMMIT_TAG"
     - rm -rf $label
     - mkdir $label
-    - go build -o $label/froyg -ldflags "-w -X main.version=$CI_COMMIT_TAG-$CI_COMMIT_SHORT_SHA" .
+    - go build -o $label/froyg $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_TAG-$CI_COMMIT_SHORT_SHA" .
     - cp LICENSE $label/
     - tar cfJ $label.tar.xf $label
   artifacts:
@@ -50,6 +50,20 @@ linux_amd64:
   before_script:
     - export GOOS=linux
     - export GOARCH=amd64
+
+linux_amd64_static:
+  extends: .xcompile
+  before_script:
+    - export GOOS=linux
+    - export GOARCH=amd64
+    - export CGO_ENABLED=0
+    - export XFLAGS="-a"
+    - export XLABEL="_static"
+    - export TAGS="-tags netgo"
+    - export XLDFLAGS='-extldflags "-static"'
+  only:
+    changes:
+      - '.gitlab-ci.yml'
 
 linux_arm:
   extends: .xcompile
