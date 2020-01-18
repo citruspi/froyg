@@ -1,3 +1,13 @@
+## v0.2.1 (18 January 2020)
+
+- Bumped GitLab CI Go build version from 1.12.5 to 1.13.6
+- Return a `400` if a request is received for an unknown region instead of panicking
+- Include the S3 object version ID in the response where applicable
+- Log HTTP request methods
+- Return a `405` if an HTTP request is received with a verb other than `GET`
+- Return a `412` on HTTP precondition failures
+- Pass through `Content-Length` header from S3 to client
+
 ## v0.2.0 (26 June 2019)
 
 - Bumped Gitlab CI Go build version from 1.9.3 to 1.12.5
