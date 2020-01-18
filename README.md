@@ -1,7 +1,7 @@
-![https://src.101c0d3.run/citruspi/froyg/pipelines](https://src.101c0d3.run/citruspi/froyg/badges/master/pipeline.svg)
-![https://src.101c0d3.run/citruspi/froyg/tags](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![https://src.doom.fm/citruspi/froyg/pipelines](https://src.doom.fm/citruspi/froyg/badges/master/pipeline.svg)
+![https://src.doom.fm/citruspi/froyg/tags](https://img.shields.io/badge/version-0.2.1-blue.svg)
 
-<img src="https://src.101c0d3.run/citruspi/froyg/raw/master/header.png" width="100%"/>
+<img src="https://src.doom.fm/citruspi/froyg/raw/master/header.png" width="100%"/>
 
 **Do not run an instance of `froyg` that is open to the Internet unless you're absolutely sure that it is safe to do so. If you have any doubt, do not do it.**
 
