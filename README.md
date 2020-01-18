@@ -25,7 +25,7 @@ http://localhost:1815/us-east-1/mybucket/foo/bar/hello-world
 From source:
 
 ```
-$ go get -u src.101c0d3.run/citruspi/froyg
+$ go get -u src.doom.fm/citruspi/froyg
 ```
 
 Binaries for the following operating systems and architectures are also built and released for tagged versions at [releases.beastnet.works](#).
