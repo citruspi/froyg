@@ -124,6 +124,7 @@ Information about headers not detailed below can be found [here][httpHeaders].
 | `If-Unmodified-Since` | n/a |
 | `X-S3-Object-Version` | Specify a version of the object to request |
 | `X-S3-Object-Part` | Specify a part of the object to request |
+| `X-Request-Id` | n/a |
 
 **Response Headers**
 
@@ -133,10 +134,14 @@ Information about headers not detailed below can be found [here][httpHeaders].
 | `Content-Disposition` | n/a |
 | `Content-Encoding` | n/a |
 | `Content-Language` | n/a |
+| `Content-Length` | n/a |
+| `Content-Range` | n/a |
 | `Content-Type` | n/a |
 | `ETag` | n/a |
 | `Expires` | n/a |
 | `Last-Modified` | n/a |
+| `X-S3-Object-Version` | n/a |
+| `X-Request-Id` | ID from request if set otherwise UUIDv4 |
 
 ## Example
 
