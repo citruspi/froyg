@@ -34,7 +34,7 @@ Binaries for the following operating systems and architectures are also built an
 https://releases.beastnet.works/froyg/froyg-{OS}.{ARCH}-{REF}.tar.xf
 
 Darwin          386 / amd64
-Linux           386 / amd64 / arm / arm64
+Linux           386 / amd64 / amd64_static / arm / arm64
 Windows         386 / amd64
 Dragonfly       amd64
 FreeBSD         386 / amd64 / arm

@@ -7,6 +7,7 @@
 - Return a `405` if an HTTP request is received with a verb other than `GET`
 - Return a `412` on HTTP precondition failures
 - Pass through `Content-Length` header from S3 to client
+- Enabled Linux static amd64 builds
 
 ## v0.2.0 (26 June 2019)
 
