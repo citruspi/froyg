@@ -193,7 +193,7 @@ func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, i
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case s3.ErrCodeNoSuchKey:
-				if secondPass {
+				if secondPass || !conf.ServeWww {
 					status = http.StatusNotFound
 				} else {
 					gnuKey := path.Join(*o.s3ObjectRequest.Key, conf.IndexFile)

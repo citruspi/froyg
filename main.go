@@ -15,6 +15,7 @@ import (
 type Configuration struct {
 	BindAddress string
 	IndexFile   string
+	ServeWww    bool
 }
 
 var (
@@ -51,6 +52,7 @@ var (
 func init() {
 	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
 	flag.StringVar(&conf.IndexFile, "index", "index.html", "index file")
+	flag.BoolVar(&conf.ServeWww, "www", false, "act as web server")
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	logJson := flag.Bool("log-json", false, "json log format")
 	logLevel := flag.Int("v", 4, "verbosity (1-7; panic, fatal, error, warn, info, debug, trace)")
