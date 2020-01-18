@@ -2,12 +2,18 @@
 
 - Bumped GitLab CI Go build version from 1.12.5 to 1.13.6
 - Return a `400` if a request is received for an unknown region instead of panicking
-- Include the S3 object version ID in the response where applicable
+- Included the S3 object version ID in the response where applicable
 - Log HTTP request methods
 - Return a `405` if an HTTP request is received with a verb other than `GET`
 - Return a `412` on HTTP precondition failures
 - Pass through `Content-Length` header from S3 to client
 - Enabled Linux static amd64 builds
+- Placed web server mode behind flag (`-www`)
+- Updated Go AWS SDK version from v1.20.5 to v1.28.5
+- Added new AWS S3 regions
+    - `ap-east-1` (Hong Kong)
+    - `eu-north-1` (Stockholm)
+    - `me-south-1` (Bahrain)
 
 ## v0.2.0 (26 June 2019)
 
