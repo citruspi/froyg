@@ -231,7 +231,7 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 	object, status := o.upstreamRequest(false)
 
 	if status != http.StatusOK {
-		return nil, nil, status
+		return nil, map[string]string{"Content-Length": "0"}, status
 	}
 
 	headers := make(map[string]string)
@@ -256,6 +256,12 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 
 	if object.LastModified != nil {
 		headers["Last-Modified"] = object.LastModified.Format(http.TimeFormat)
+	}
+
+	if object.ContentLength == nil {
+		headers["Content-Length"] = "0"
+	} else {
+		headers["Content-Length"] = strconv.FormatInt(*object.ContentLength, 10)
 	}
 
 	return object.Body, headers, http.StatusOK
