@@ -26,6 +26,7 @@ var (
 		"us-west-1",
 		"us-west-2",
 		"ca-central-1",
+		"ap-east-1",
 		"ap-south-1",
 		"ap-northeast-1",
 		"ap-northeast-2",
@@ -37,6 +38,8 @@ var (
 		"eu-west-1",
 		"eu-west-2",
 		"eu-west-3",
+		"eu-north-1",
+		"me-south-1",
 		"sa-east-1",
 	}
 
