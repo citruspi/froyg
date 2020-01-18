@@ -1,4 +1,4 @@
-image: img.doom.fm/citruspi/go_xc_img:1.12.5-stretch
+image: img.doom.fm/citruspi/go_xc:1.13.6-stretch
 
 before_script:
   - mkdir bin
