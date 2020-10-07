@@ -147,7 +147,7 @@ openbsd_arm:
     - export GOOS=openbsd
     - export GOARCH=arm
 
-tarball:
+tar:
   stage: package
   image:
     name: debian:buster
