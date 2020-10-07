@@ -149,9 +149,8 @@ openbsd_arm:
 
 .packages:
   stage: package
-  before_script:
-    - mkdir packages
   script:
+    - mkdir packages
     - bash .ci/pkg-native.sh $TYPE $ARCH $FILE
   artifacts:
     paths:
