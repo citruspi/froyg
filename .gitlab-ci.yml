@@ -149,8 +149,14 @@ openbsd_arm:
 
 tarball:
   stage: package
+  image:
+    name: debian:buster
   script:
-    - ls -al out
+    - bash .ci/pkg-tarballs.sh
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - tarballs
 
 publish:
   stage: release
