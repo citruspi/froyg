@@ -15,11 +15,13 @@ case $TYPE in
         ;;
       i386)
         OUT="packages/froyg-386.deb"
+        ;;
       *)
         echo "Unsupported arch: $ARCH"
         exit 1
         ;;
     esac
+    ;;
   *)
     echo "Unsupported OS: $OS"
     exit 1
