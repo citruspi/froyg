@@ -47,7 +47,7 @@ linux_amd64_static:
     - export GOARCH=amd64
     - export CGO_ENABLED=0
     - export XFLAGS="-a"
-    - export XLABEL="_static"
+    - export XLABEL="-static"
     - export TAGS="-tags netgo"
     - export XLDFLAGS='-extldflags "-static"'
 
