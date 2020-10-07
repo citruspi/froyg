@@ -4,8 +4,7 @@ before_script:
   - mkdir bin
 stages:
   - test
-  - build
-  - xcompile
+  - compile
   - release
 
 fmt:
@@ -18,23 +17,14 @@ vet:
   script:
     - go vet -c 3
 
-build:
-  stage: build
-  script:
-    - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_SHA" .
-
 .xcompile:
-  stage: xcompile
+  stage: compile
   script:
-    - export label="froyg-$GOOS.$GOARCH$XLABEL-$CI_COMMIT_TAG"
-    - rm -rf $label
-    - mkdir $label
-    - go build -o $label/froyg $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_TAG-$CI_COMMIT_SHORT_SHA" .
-    - cp LICENSE $label/
-    - tar cfJ $label.tar.xf $label
+    - mkdir out
+    - go build -o "out/froyg-$GOOS.$GOARCH$XLABEL-$CI_COMMIT_REF_SLUG" $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
   artifacts:
     paths:
-      - "*.tar.xf"
+      - out
     expire_in: 1 day
 
 linux_386:
