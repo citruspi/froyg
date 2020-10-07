@@ -174,7 +174,7 @@ tar:
 deb_amd64:
   extends: .packages
   image:
-    name: img.doom.fm/build/fpm:debian-buster
+    name: img.doom.fm/build/fpm:1.11.0-debian-buster
   before_script:
     - export TYPE=deb
     - export ARCH=amd64
