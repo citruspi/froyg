@@ -5,6 +5,7 @@ before_script:
 stages:
   - test
   - compile
+  - package
   - release
 
 fmt:
@@ -148,6 +149,11 @@ openbsd_arm:
   before_script:
     - export GOOS=openbsd
     - export GOARCH=arm
+
+tarball:
+  stage: package
+  script:
+    - ls -al out
 
 publish:
   stage: release
