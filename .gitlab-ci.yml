@@ -22,7 +22,7 @@ vet:
   stage: compile
   script:
     - mkdir out
-    - go build -o "out/froyg-$GOOS.$GOARCH$XLABEL-$CI_COMMIT_REF_SLUG" $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
+    - go build -o "out/froyg-$GOOS.$GOARCH$XLABEL" $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
   artifacts:
     paths:
       - out
