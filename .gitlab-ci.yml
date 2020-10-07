@@ -36,8 +36,6 @@ build:
     paths:
       - "*.tar.xf"
     expire_in: 1 day
-  only:
-    - tags
 
 linux_386:
   extends: .xcompile
