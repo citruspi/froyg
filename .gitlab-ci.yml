@@ -50,9 +50,6 @@ linux_amd64_static:
     - export XLABEL="_static"
     - export TAGS="-tags netgo"
     - export XLDFLAGS='-extldflags "-static"'
-  only:
-    changes:
-      - '.gitlab-ci.yml'
 
 linux_arm:
   extends: .xcompile
