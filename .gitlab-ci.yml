@@ -157,7 +157,7 @@ openbsd_arm:
       - packages
     expire_in: 1 day
 
-tar:
+tarballs:
   stage: package
   image:
     name: debian:buster
