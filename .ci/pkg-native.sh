@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 TYPE=${1:-""}
 ARCH=${2:-""}
 BIN=${3:-""}
@@ -33,8 +35,10 @@ esac
 [[ -z "$BIN" ]] && { echo "No binary provided" ; exit 1; }
 [[ -z "$OUT" ]] && { echo "Failed to determine package name" ; exit 1; }
 
+VERSION=$(/usr/bin/version-from-ref)
+
 fpm -s dir -t $TYPE -n froyg -p $OUT \
-  -v $CI_COMMIT_REF_SLUG --iteration $CI_COMMIT_SHORT_SHA \
+  -v $VERSION --iteration $CI_COMMIT_SHORT_SHA \
   -a $ARCH --license "Public Domain" \
   -m "Mihir Singh (@citruspi)" --url "https://src.doom.fm/citruspi/froyg" \
   --description "Multi-region, multi-bucket HTTP Gateway for S3 Objects" \
