@@ -179,6 +179,15 @@ deb_amd64:
     - export ARCH=amd64
     - export FILE=out/froyg-linux.amd64
 
+deb_i386:
+  extends: .packages
+  image:
+    name: img.doom.fm/build/fpm:1.11.0-debian-buster
+  before_script:
+    - export TYPE=deb
+    - export ARCH=i386
+    - export FILE=out/froyg-linux.386
+
 publish:
   stage: release
   script:
