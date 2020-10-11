@@ -24,6 +24,21 @@ case $TYPE in
         ;;
     esac
     ;;
+  rpm)
+    case $ARCH in
+      x86_64 | amd64)
+        OUT="packages/froyg-amd64.rpm"
+        ARCH="x86_64"
+        ;;
+      i386)
+        OUT="packages/froyg-386.rpm"
+        ;;
+      *)
+        echo "Unsupported arch: $ARCH"
+        exit 1
+        ;;
+    esac
+    ;;
   *)
     echo "Unsupported OS: $OS"
     exit 1
@@ -49,6 +64,9 @@ echo "Packaged $(echo $OUT | awk -F '/' '{print $2}')"
 case $TYPE in
   deb)
     dpkg -c $OUT
+    ;;
+  rpm)
+    rpm -qlp $OUT
     ;;
   *)
     echo "Unsupported OS: $OS"
