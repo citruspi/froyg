@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -xe
 
 TYPE=${1:-""}
 ARCH=${2:-""}
