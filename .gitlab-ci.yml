@@ -20,6 +20,9 @@ vet:
 
 .xcompile:
   stage: compile
+  needs:
+    - fmt
+    - vet
   script:
     - mkdir out
     - go build -o "out/froyg-$GOOS.$GOARCH$XLABEL" $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
@@ -172,6 +175,8 @@ tarballs:
 
 deb_amd64:
   extends: .packages
+  needs:
+    - linux_amd64
   image:
     name: img.doom.fm/build/fpm:1.11.0-debian-buster
   before_script:
@@ -181,6 +186,8 @@ deb_amd64:
 
 deb_i386:
   extends: .packages
+  needs:
+    - linux_386
   image:
     name: img.doom.fm/build/fpm:1.11.0-debian-buster
   before_script:
@@ -190,6 +197,8 @@ deb_i386:
 
 rpm_amd64:
   extends: .packages
+  needs:
+    - linux_amd64
   image:
     name: img.doom.fm/build/fpm:1.11.0-centos-7
   before_script:
@@ -199,6 +208,8 @@ rpm_amd64:
 
 rpm_i386:
   extends: .packages
+  needs:
+    - linux_386
   image:
     name: img.doom.fm/build/fpm:1.11.0-centos-7
   before_script:
@@ -208,6 +219,12 @@ rpm_i386:
 
 publish:
   stage: release
+  needs:
+    - tarballs
+    - deb_amd64
+    - deb_i386
+    - rpm_amd64
+    - rpm_i386
   script:
     - publish
   only:
