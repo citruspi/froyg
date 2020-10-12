@@ -150,16 +150,6 @@ openbsd_arm:
     - export GOOS=openbsd
     - export GOARCH=arm
 
-.packages:
-  stage: package
-  script:
-    - mkdir packages
-    - bash .ci/pkg-native.sh $TYPE $ARCH $FILE
-  artifacts:
-    paths:
-      - packages
-    expire_in: 1 day
-
 tarballs:
   stage: package
   image:
@@ -173,8 +163,24 @@ tarballs:
     paths:
       - tarballs
 
+.linux-packages:
+  stage: package
+  script:
+    - export NAME="froyg"
+    - export DESCRIPTION="Multi-region, multi-bucket HTTP Gateway for S3 Objects"
+    - export MAINTAINER="Mihir Singh (@citruspi)"
+    - export LICENSE="Public Domain"
+    - export URL="https://src.doom.fm/citruspi/froyg"
+    - export OUT="packages/froyg-$ARCH.$TYPE"
+    - mkdir packages
+    - bash .ci/pkg-native.sh out/froyg-linux.$ARCH=/usr/bin/froyg
+  artifacts:
+    paths:
+      - packages
+    expire_in: 1 day
+
 deb_amd64:
-  extends: .packages
+  extends: .linux-packages
   needs:
     - linux_amd64
   image:
@@ -182,21 +188,19 @@ deb_amd64:
   before_script:
     - export TYPE=deb
     - export ARCH=amd64
-    - export FILE=out/froyg-linux.amd64
 
-deb_i386:
-  extends: .packages
+deb_386:
+  extends: .linux-packages
   needs:
     - linux_386
   image:
     name: img.doom.fm/build/fpm:1.11.0-debian-buster
   before_script:
     - export TYPE=deb
-    - export ARCH=i386
-    - export FILE=out/froyg-linux.386
+    - export ARCH=386
 
 rpm_amd64:
-  extends: .packages
+  extends: .linux-packages
   needs:
     - linux_amd64
   image:
@@ -204,27 +208,25 @@ rpm_amd64:
   before_script:
     - export TYPE=rpm
     - export ARCH=amd64
-    - export FILE=out/froyg-linux.amd64
 
-rpm_i386:
-  extends: .packages
+rpm_386:
+  extends: .linux-packages
   needs:
     - linux_386
   image:
     name: img.doom.fm/build/fpm:1.11.0-centos-7
   before_script:
     - export TYPE=rpm
-    - export ARCH=i386
-    - export FILE=out/froyg-linux.386
+    - export ARCH=386
 
 publish:
   stage: release
   needs:
     - tarballs
     - deb_amd64
-    - deb_i386
+    - deb_386
     - rpm_amd64
-    - rpm_i386
+    - rpm_386
   script:
     - publish
   only:
