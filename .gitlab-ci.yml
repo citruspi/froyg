@@ -156,6 +156,9 @@ tarballs:
     name: debian:buster
   before_script:
     - apt-get update && apt-get install -y xz-utils
+    - export NAME=froyg
+    - export TAR_DIR=tarballs
+    - export BIN_DIR=out
   script:
     - bash .ci/pkg-tarballs.sh
   artifacts:
