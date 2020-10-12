@@ -49,11 +49,11 @@ esac
 
 VERSION=$(/usr/bin/version-from-ref)
 
-fpm -s dir -t $TYPE -n $NAME -p $OUT \
+fpm -s dir -t $TYPE -n $NAME -p "$OUT" \
   -v $VERSION --iteration $CI_COMMIT_SHORT_SHA \
-  -a $ARCH --license $LICENSE \
-  -m $MAINTAINER --url $URL \
-  --description $DESCRIPTION \
+  -a $ARCH --license "$LICENSE" \
+  -m "$MAINTAINER" --url "$URL" \
+  --description "$DESCRIPTION" \
   $@ ||  { echo 'Failed to build package' ; exit 1; }
 
 echo "Packaged $(echo $OUT | awk -F '/' '{print $2}')"
