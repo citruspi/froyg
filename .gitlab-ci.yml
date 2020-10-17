@@ -8,8 +8,10 @@ stages:
 
 include:
   - project: build/gitlab
+    ref: master
     file: golang/test.yml
   - project: build/gitlab
+    ref: master
     file: golang/compile.yml
 
 tarballs:
