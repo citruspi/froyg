@@ -1,7 +1,8 @@
 image: img.doom.fm/citruspi/go_xc:1.13.6-stretch
 
-before_script:
-  - mkdir bin
+include:
+  - remote: 'https://src.doom.fm/build/gitlab/-/raw/golang/cross-compile.yml'
+
 stages:
   - test
   - compile
@@ -17,138 +18,6 @@ vet:
   stage: test
   script:
     - go vet -c 3
-
-.xcompile:
-  stage: compile
-  needs:
-    - fmt
-    - vet
-  script:
-    - mkdir out
-    - go build -o "out/froyg-$GOOS.$GOARCH$XLABEL" $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA" .
-  artifacts:
-    paths:
-      - out
-    expire_in: 1 day
-
-linux_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=386
-
-linux_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=amd64
-
-linux_amd64_static:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=amd64
-    - export CGO_ENABLED=0
-    - export XFLAGS="-a"
-    - export XLABEL="-static"
-    - export TAGS="-tags netgo"
-    - export XLDFLAGS='-extldflags "-static"'
-
-linux_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=arm
-
-linux_arm64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=arm64
-
-darwin_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=386
-
-darwin_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=amd64
-
-windows_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=windows
-    - export GOARCH=386
-
-windows_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=windows
-    - export GOARCH=amd64
-
-dragonfly_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=dragonfly
-    - export GOARCH=amd64
-
-freebsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=386
-
-freebsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=amd64
-
-freebsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=arm
-
-netbsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=386
-
-netbsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=amd64
-
-netbsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=arm
-
-openbsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=386
-
-openbsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=amd64
-
-openbsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=arm
 
 tarballs:
   stage: package
@@ -176,7 +45,7 @@ tarballs:
     - export URL="https://src.doom.fm/citruspi/froyg"
     - export OUT="packages/froyg-$ARCH.$TYPE"
     - mkdir packages
-    - bash .ci/pkg-native.sh out/froyg-linux.$ARCH=/usr/bin/froyg
+    - bash .ci/pkg-native.sh bin/froyg-linux.$ARCH=/usr/bin/froyg
   artifacts:
     paths:
       - packages
