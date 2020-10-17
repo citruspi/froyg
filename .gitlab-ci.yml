@@ -1,23 +1,16 @@
 image: img.doom.fm/citruspi/go_xc:1.13.6-stretch
 
-include:
-  - remote: 'https://src.doom.fm/build/gitlab/-/raw/golang/cross-compile.yml'
-
 stages:
   - test
   - compile
   - package
   - release
 
-fmt:
-  stage: test
-  script:
-    - go fmt
-
-vet:
-  stage: test
-  script:
-    - go vet -c 3
+include:
+  - project: build/gitlab
+    file: golang/test.yml
+  - project: build/gitlab
+    file: golang/compile.yml
 
 tarballs:
   stage: package
