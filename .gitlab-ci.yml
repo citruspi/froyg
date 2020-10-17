@@ -1,4 +1,4 @@
-image: img.doom.fm/citruspi/go_xc:1.13.6-stretch
+image: img.doom.fm/build/golang:latest-1.14.5-buster
 
 stages:
   - test
