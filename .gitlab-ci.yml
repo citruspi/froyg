@@ -13,78 +13,12 @@ include:
   - project: build/gitlab
     ref: master
     file: golang/compile.yml
-
-tarballs:
-  stage: package
-  image:
-    name: debian:buster
-  before_script:
-    - apt-get update && apt-get install -y xz-utils
-    - export NAME=froyg
-    - export TAR_DIR=tarballs
-    - export BIN_DIR=out
-  script:
-    - bash .ci/pkg-tarballs.sh
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - tarballs
-
-.linux-packages:
-  stage: package
-  script:
-    - export NAME="froyg"
-    - export DESCRIPTION="Multi-region, multi-bucket HTTP Gateway for S3 Objects"
-    - export MAINTAINER="Mihir Singh (@citruspi)"
-    - export LICENSE="Public Domain"
-    - export URL="https://src.doom.fm/citruspi/froyg"
-    - export OUT="packages/froyg-$ARCH.$TYPE"
-    - mkdir packages
-    - bash .ci/pkg-native.sh bin/froyg-linux.$ARCH=/usr/bin/froyg
-  artifacts:
-    paths:
-      - packages
-    expire_in: 1 day
-
-deb_amd64:
-  extends: .linux-packages
-  needs:
-    - linux_amd64
-  image:
-    name: img.doom.fm/build/fpm:1.11.0-debian-buster
-  before_script:
-    - export TYPE=deb
-    - export ARCH=amd64
-
-deb_386:
-  extends: .linux-packages
-  needs:
-    - linux_386
-  image:
-    name: img.doom.fm/build/fpm:1.11.0-debian-buster
-  before_script:
-    - export TYPE=deb
-    - export ARCH=386
-
-rpm_amd64:
-  extends: .linux-packages
-  needs:
-    - linux_amd64
-  image:
-    name: img.doom.fm/build/fpm:1.11.0-centos-7
-  before_script:
-    - export TYPE=rpm
-    - export ARCH=amd64
-
-rpm_386:
-  extends: .linux-packages
-  needs:
-    - linux_386
-  image:
-    name: img.doom.fm/build/fpm:1.11.0-centos-7
-  before_script:
-    - export TYPE=rpm
-    - export ARCH=386
+  - project: build/gitlab
+    ref: master
+    file: golang/pkg-tarballs.yml
+  - project: build/gitlab
+    ref: master
+    file: golang/pkg-native.yml
 
 publish:
   stage: release
