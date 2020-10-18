@@ -23,7 +23,25 @@ include:
 publish:
   stage: release
   needs:
-    - tarballs
+    - tar_linux_386
+    - tar_linux_amd64
+    - tar_linux_amd64_static
+    - tar_linux_arm
+    - tar_linux_arm64
+    - tar_darwin_386
+    - tar_darwin_amd64
+    - tar_windows_386
+    - tar_windows_amd64
+    - tar_dragonfly_amd64
+    - tar_freebsd_386
+    - tar_freebsd_amd64
+    - tar_freebsd_arm
+    - tar_netbsd_386
+    - tar_netbsd_amd64
+    - tar_netbsd_arm
+    - tar_openbsd_386
+    - tar_openbsd_amd64
+    - tar_openbsd_arm
     - deb_amd64
     - deb_386
     - rpm_amd64
