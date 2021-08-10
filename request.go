@@ -185,8 +185,11 @@ func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, i
 
 	status := http.StatusOK
 
-	if conf.ServeWww && strings.TrimSpace(*o.s3ObjectRequest.Key) == "/" {
-		o.s3ObjectRequest.Key = &conf.IndexFile
+	k := strings.TrimSpace(*o.s3ObjectRequest.Key)
+
+	if conf.ServeWww && k[len(k)-1:] == "/" {
+		k = path.Join(k, conf.IndexFile)
+		o.s3ObjectRequest.Key = &k
 		secondPass = true
 	}
 
