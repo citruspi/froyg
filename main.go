@@ -27,16 +27,19 @@ const (
 		<style>
 			table { border-collapse: collapse; }
 			strong#title { margin-bottom: 1rem; }
-			th { text-align: left; padding: 0; }
+			th { text-align: left; padding: 0.5rem 5px; }
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
+			tbody > tr > td { padding: 0.25rem 5px; }
 			tbody > tr:first-child td { padding-top: 0.5rem; }
+			tr:nth-child(even) { background-color: #EDEDED; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
 				thead > tr { border-bottom-color: white; }
 				a { color: #FFCD00; }
 				a:visited { color: #FF9800; }
+				tr:nth-child(even) { background-color: #2A2A2A; }
 			}
 		</style>
 	</head>
