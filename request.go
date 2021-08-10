@@ -187,11 +187,11 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 	return http.StatusOK
 }
 
-func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, error) {
+func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, int, error) {
 	t, err := template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
 
 	if err != nil {
-		return nil, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	type Link struct {
@@ -204,26 +204,6 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 	var links []Link
 
 	prefix = strings.TrimPrefix(prefix, "/")
-
-	//if o.s3KeyPrefix == nil {
-	//	if prefix != "" {
-	//		links = append(links, Link{
-	//			Name:         ".. /",
-	//			Href:         "../",
-	//			Size:         "",
-	//			LastModified: "",
-	//		})
-	//	}
-	//} else {
-	//	if len(strings.TrimPrefix(prefix, *o.s3KeyPrefix)) > 0 {
-	//		links = append(links, Link{
-	//			Name:         ".. /",
-	//			Href:         "../",
-	//			Size:         "",
-	//			LastModified: "",
-	//		})
-	//	}
-	//}
 
 	if (o.s3KeyPrefix == nil && prefix != "") || (o.s3KeyPrefix != nil && len(strings.TrimPrefix(prefix, *o.s3KeyPrefix)) > 0) {
 		links = append(links, Link{
@@ -246,8 +226,12 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 		"s3_list_objects_req": listObjectsInput,
 	}).Debugln("indexing prefix")
 
+	var n int
+
 	err = s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
 		for _, p := range output.CommonPrefixes {
+			n += 1
+
 			name := strings.TrimPrefix(*p.Prefix, prefix)
 
 			links = append(links, Link{
@@ -263,6 +247,8 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 				continue
 			}
 
+			n += 1
+
 			name := strings.TrimPrefix(*object.Key, prefix)
 
 			links = append(links, Link{
@@ -277,7 +263,11 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, http.StatusInternalServerError, err
+	}
+
+	if n == 0 {
+		return nil, http.StatusNotFound, nil
 	}
 
 	buf := bytes.Buffer{}
@@ -289,7 +279,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	length := int64(buf.Len())
@@ -299,7 +289,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, e
 		Body:          io.NopCloser(&buf),
 		ContentLength: &length,
 		ContentType:   &type_,
-	}, nil
+	}, http.StatusOK, nil
 }
 
 func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
@@ -318,13 +308,13 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 		}
 
 		if conf.AutoIndex && (status == http.StatusNotFound || status == 0) {
-			index, err := o.indexCommonPrefix(k)
+			index, status, err := o.indexCommonPrefix(k)
 
 			if err == nil {
-				return index, 200
+				return index, status
 			} else {
 				logrus.WithError(err).Errorln("failed to index common prefix")
-				return nil, 500
+				return nil, status
 			}
 		}
 	} else {
@@ -338,13 +328,13 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 		}
 
 		if status == http.StatusNotFound && conf.AutoIndex {
-			index, err := o.indexCommonPrefix(k + "/")
+			index, status, err := o.indexCommonPrefix(k + "/")
 
 			if err == nil {
-				return index, 200
+				return index, status
 			} else {
 				logrus.WithError(err).Errorln("failed to index common prefix")
-				return nil, 500
+				return nil, status
 			}
 		}
 	}
