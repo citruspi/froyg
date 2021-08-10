@@ -36,6 +36,7 @@ const (
 			tr:nth-child(even) { background-color: #EDEDED; }
 			th#name { min-width: 175px; padding-right: 1rem; }
 			th#size { min-width: 75px; padding-right: 1rem; }
+			td#size { text-align: right; }
 			th#lmod { min-width: 250px; }
 			a { text-decoration: none; }
 
@@ -61,7 +62,7 @@ const (
 				{{range .Links}}
 				<tr>
 					<td><a href="{{ .Href }}">{{ .Name }}</a></td>
-					<td>{{ .Size }}</td>
+					<td id="size">{{ .Size }}</td>
 					<td>{{ .LastModified }}</td>
 				</tr>
 				{{end}}
