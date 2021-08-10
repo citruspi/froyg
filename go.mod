@@ -1,6 +1,6 @@
 module src.doom.fm/citruspi/froyg
 
-go 1.13
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.28.5
