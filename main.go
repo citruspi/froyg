@@ -16,7 +16,45 @@ type Configuration struct {
 	BindAddress string
 	IndexFile   string
 	ServeWww    bool
+	AutoIndex   bool
 }
+
+const (
+	DIR_INDEX_TEMPLATE = `<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			table { border-collapse: collapse; }
+			strong#title { margin-bottom: 1rem; }
+			th { text-align: left; padding: 0; }
+			thead > tr { border-bottom: 1.5px solid #131313; }
+			thead > tr > th { padding-bottom: 0.5rem; }
+			tbody > tr:first-child td { padding-top: 0.5rem; }
+		</style>
+	</head>
+	<body>
+		<table>
+			<thead>
+				<tr>
+					<th style="min-width: 150px; padding-right: 1rem;">Name</th>
+					<th style="width: 100px; padding-right: 1rem;">Size</th>
+					<th style="width: 250px;">Last Modified</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Links}}
+				<tr>
+					<td><a href="{{ .Href }}">{{ .Name }}</a></td>
+					<td>{{ .Size }}</td>
+					<td>{{ .LastModified }}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</body>
+</html>`
+)
 
 var (
 	version string = "unset"
@@ -53,6 +91,8 @@ func init() {
 	flag.StringVar(&conf.BindAddress, "bind", "127.0.0.1:1815", "bind address")
 	flag.StringVar(&conf.IndexFile, "index", "index.html", "index file")
 	flag.BoolVar(&conf.ServeWww, "www", false, "act as web server")
+	flag.BoolVar(&conf.AutoIndex, "auto-index", false, "auto index common prefixes")
+
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	logJson := flag.Bool("log-json", false, "json log format")
 	logLevel := flag.Int("v", 4, "verbosity (1-7; panic, fatal, error, warn, info, debug, trace)")
