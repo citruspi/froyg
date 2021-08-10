@@ -31,6 +31,13 @@ const (
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
 			tbody > tr:first-child td { padding-top: 0.5rem; }
+
+			@media (prefers-color-scheme: dark) {
+				body { background-color: #131313; color: white; }
+				thead > tr { border-bottom-color: white; }
+				a { color: #FFCD00; }
+				a:visited { color: #FF9800; }
+			}
 		</style>
 	</head>
 	<body>
