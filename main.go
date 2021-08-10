@@ -25,17 +25,19 @@ const (
 	<head>
 		<meta charset="UTF-8">
 		<style>
+			body { font-family: monospace; font-size: 115%; }
 			table { border-collapse: collapse; }
 			strong#title { margin-bottom: 1rem; }
-			th { text-align: left; padding: 0.5rem 15px; }
+			th { text-align: left; padding: 0.5rem 15px; font-size: 120%; }
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
 			tbody > tr > td { padding: 0.25rem 15px; }
 			tbody > tr:first-child td { padding-top: 0.5rem; }
 			tr:nth-child(even) { background-color: #EDEDED; }
-			th#name { min-width: 150px; padding-right: 1rem; }
-			th#size { width: 100px; padding-right: 1rem; }
-			th#lmod { width: 215px; }
+			th#name { min-width: 175px; padding-right: 1rem; }
+			th#size { min-width: 75px; padding-right: 1rem; }
+			th#lmod { min-width: 250px; }
+			a { text-decoration: none; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
