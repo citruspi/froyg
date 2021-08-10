@@ -23,6 +23,7 @@ const (
 	DIR_INDEX_TEMPLATE = `<!DOCTYPE html>
 <html>
 	<head>
+		<title>{{ .Title }} @ {{ .Prefix }}</title>
 		<meta charset="UTF-8">
 		<style>
 			body { font-family: monospace; font-size: 110%; }
@@ -38,19 +39,22 @@ const (
 			th#size { min-width: 75px; padding-right: 1rem; }
 			td#size { text-align: right; }
 			th#lmod { min-width: 250px; }
-			a { color: #FF0000; text-decoration: none; }
+			a, span#title-separator { color: #FF0000; text-decoration: none; }
 			a:visited { color: #8100FF; }
+			h3 { font-size: 125%; margin-top: 0; margin-bottom: 5px; }
+			span#title-separator { font-size: 140%; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
 				thead > tr { border-bottom-color: white; }
-				a { color: #FFCD00; }
+				a, span#title-separator { color: #FFCD00; }
 				a:visited { color: #FF9800; }
 				tr:nth-child(even) { background-color: #2A2A2A; }
 			}
 		</style>
 	</head>
 	<body>
+		<h3>{{ .Title }} <span id="title-separator">&#10031;</span> {{ .Prefix }}</h3>
 		<table>
 			<thead>
 				<tr>

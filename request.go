@@ -288,10 +288,20 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 	buf := bytes.Buffer{}
 
+	titlePrefix := prefix
+
+	if o.s3KeyPrefix != nil {
+		titlePrefix = strings.TrimPrefix(titlePrefix, *o.s3KeyPrefix)
+	}
+
 	err = t.Execute(&buf, struct {
-		Links []Link
+		Title  string
+		Prefix string
+		Links  []Link
 	}{
-		Links: links,
+		Title:  o.httpRequest.Host,
+		Prefix: strings.Trim(titlePrefix, "/") + "/",
+		Links:  links,
 	})
 
 	if err != nil {
