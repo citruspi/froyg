@@ -25,10 +25,10 @@ const (
 	<head>
 		<meta charset="UTF-8">
 		<style>
-			body { font-family: monospace; font-size: 115%; }
+			body { font-family: monospace; font-size: 110%; }
 			table { border-collapse: collapse; }
 			strong#title { margin-bottom: 1rem; }
-			th { text-align: left; padding: 0.5rem 15px; font-size: 120%; }
+			th { text-align: left; padding: 0.5rem 15px; font-size: 110%; }
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
 			tbody > tr > td { padding: 0.25rem 15px; }
