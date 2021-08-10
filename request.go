@@ -84,17 +84,25 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 	} else {
 		tokens := strings.SplitN(html.EscapeString(r.URL.Path), "/", 4)
 
-		if len(tokens) < 4 {
-			o.log.Warnln("malformed path routing request")
-		} else {
+		if len(tokens) == 4 {
 			s3Region = &tokens[1]
 			s3Bucket = &tokens[2]
 			s3Key = &tokens[3]
+		} else if len(tokens) == 3 {
+			s3Region = &tokens[1]
+			s3Bucket = &tokens[2]
+		} else {
+			o.log.Warnln("malformed path routing request")
 		}
 	}
 
-	if s3Region == nil || s3Bucket == nil || s3Key == nil {
+	if s3Region == nil || s3Bucket == nil {
 		return http.StatusBadRequest
+	}
+
+	if s3Key == nil || len(*s3Key) == 0 {
+		s := "/"
+		s3Key = &s
 	}
 
 	if _, ok := s3conn[*s3Region]; !ok {
