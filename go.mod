@@ -1,4 +1,4 @@
-module 📦.st/citruspi/froyg
+module src.doom.fm/citruspi/froyg
 
 go 1.13
 
