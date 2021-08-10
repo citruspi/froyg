@@ -27,12 +27,15 @@ const (
 		<style>
 			table { border-collapse: collapse; }
 			strong#title { margin-bottom: 1rem; }
-			th { text-align: left; padding: 0.5rem 5px; }
+			th { text-align: left; padding: 0.5rem 15px; }
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
-			tbody > tr > td { padding: 0.25rem 5px; }
+			tbody > tr > td { padding: 0.25rem 15px; }
 			tbody > tr:first-child td { padding-top: 0.5rem; }
 			tr:nth-child(even) { background-color: #EDEDED; }
+			th#name { min-width: 150px; padding-right: 1rem; }
+			th#size { width: 100px; padding-right: 1rem; }
+			th#lmod { width: 215px; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
@@ -47,9 +50,9 @@ const (
 		<table>
 			<thead>
 				<tr>
-					<th style="min-width: 150px; padding-right: 1rem;">Name</th>
-					<th style="width: 100px; padding-right: 1rem;">Size</th>
-					<th style="width: 250px;">Last Modified</th>
+					<th id="name">Name</th>
+					<th id="size">Size</th>
+					<th id="lmod">Last Modified</th>
 				</tr>
 			</thead>
 			<tbody>

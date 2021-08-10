@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -251,10 +252,25 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 			name := strings.TrimPrefix(*object.Key, prefix)
 
+			sizeBytes := float64(*object.Size)
+			var sizeHuman string
+
+			if sizeBytes < 1000 {
+				sizeHuman = fmt.Sprintf("%d B", *object.Size)
+			} else if sizeBytes < 1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f KB", sizeBytes/1000.0)
+			} else if sizeBytes < 1000*1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f MB", sizeBytes/(1000*1000))
+			} else if sizeBytes < 1000*1000*1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f GB", sizeBytes/(1000*1000*1000))
+			} else {
+				sizeHuman = fmt.Sprintf("%.2f TB", sizeBytes/(1000*1000*1000*1000))
+			}
+
 			links = append(links, Link{
 				Name:         name,
 				Href:         path.Join(o.httpRequest.URL.Path, url.QueryEscape(name)),
-				Size:         strconv.FormatInt(*object.Size, 10),
+				Size:         sizeHuman,
 				LastModified: object.LastModified.Format(time.RFC1123),
 			})
 		}
