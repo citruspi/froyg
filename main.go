@@ -38,7 +38,8 @@ const (
 			th#size { min-width: 75px; padding-right: 1rem; }
 			td#size { text-align: right; }
 			th#lmod { min-width: 250px; }
-			a { text-decoration: none; }
+			a { color: #FF0000; text-decoration: none; }
+			a:visited { color: #8100FF; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
