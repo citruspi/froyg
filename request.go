@@ -189,6 +189,14 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 }
 
 func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, int, error) {
+	var root bool
+
+	cutPrefix := o.httpRequest.Header.Get("X-FROYG-AICP-CUT-PREFIX")
+	cutTitlePrefix := o.httpRequest.Header.Get("X-FROYG-AICP-CUT-TITLE-PREFIX")
+	setPrefix := o.httpRequest.Header.Get("X-FROYG-AICP-SET-PREFIX")
+	setTitlePrefix := o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-PREFIX")
+	setUpUpAndAway := o.httpRequest.Header.Get("X-FROYG-AICP-UP-UP")
+
 	t, err := template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
 
 	if err != nil {
@@ -205,8 +213,31 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	var links []Link
 
 	prefix = strings.TrimPrefix(prefix, "/")
+	titlePrefix := prefix
 
-	if (o.s3KeyPrefix == nil && prefix != "") || (o.s3KeyPrefix != nil && len(strings.TrimPrefix(prefix, *o.s3KeyPrefix)) > 0) {
+	if o.s3KeyPrefix != nil {
+		titlePrefix = strings.TrimPrefix(titlePrefix, *o.s3KeyPrefix)
+	}
+
+	if cutTitlePrefix != "" {
+		titlePrefix = strings.TrimPrefix(titlePrefix, cutTitlePrefix)
+	}
+
+	if strings.Trim(titlePrefix, "/") == "" {
+		root = true
+	}
+
+	if setTitlePrefix != "" {
+		titlePrefix = setTitlePrefix + titlePrefix
+	}
+
+	titlePrefix = path.Clean(titlePrefix)
+
+	if titlePrefix == "." {
+		titlePrefix = ""
+	}
+
+	if setUpUpAndAway == "AND-AWAY" || !root && ((o.s3KeyPrefix == nil && prefix != "") || (o.s3KeyPrefix != nil && len(strings.Trim(strings.TrimPrefix(prefix, *o.s3KeyPrefix), "/")) > 0)) {
 		links = append(links, Link{
 			Name:         ".. /",
 			Href:         "../",
@@ -234,10 +265,31 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 			n += 1
 
 			name := strings.TrimPrefix(*p.Prefix, prefix)
+			href := name[:len(name)-1]
+
+			if o.s3KeyPrefix != nil {
+				prefix = strings.TrimPrefix(prefix, *o.s3KeyPrefix)
+				href = strings.TrimPrefix(href, *o.s3KeyPrefix)
+				name = strings.TrimPrefix(*p.Prefix, *o.s3KeyPrefix)
+			} else {
+				name = strings.TrimPrefix(*p.Prefix, prefix)
+			}
+
+			if len(cutPrefix) > 0 || len(setPrefix) > 0 {
+				if len(cutPrefix) > 0 {
+					href = strings.TrimPrefix(href, cutPrefix)
+				}
+
+				if len(setPrefix) > 0 {
+					href = setPrefix + prefix + href
+				}
+			} else {
+				href = path.Join(o.httpRequest.URL.Path, url.QueryEscape(href))
+			}
 
 			links = append(links, Link{
-				Name:         html.EscapeString(name),
-				Href:         path.Join(o.httpRequest.URL.Path, url.QueryEscape(name[:len(name)-1])) + "/",
+				Name:         html.EscapeString(strings.Trim(name, "/")) + "/",
+				Href:         path.Clean(href) + "/",
 				Size:         "",
 				LastModified: "",
 			})
@@ -251,6 +303,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 			n += 1
 
 			name := strings.TrimPrefix(*object.Key, prefix)
+			href := name
 
 			sizeBytes := float64(*object.Size)
 			var sizeHuman string
@@ -267,9 +320,30 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 				sizeHuman = fmt.Sprintf("%.2f TB", sizeBytes/(1000*1000*1000*1000))
 			}
 
+			if o.s3KeyPrefix != nil {
+				prefix = strings.TrimPrefix(prefix, *o.s3KeyPrefix)
+				href = strings.TrimPrefix(href, *o.s3KeyPrefix)
+			}
+
+			if len(cutPrefix) > 0 || len(setPrefix) > 0 {
+				if len(cutPrefix) > 0 {
+					href = strings.TrimPrefix(href, cutPrefix)
+				}
+
+				if len(setPrefix) > 0 {
+					href = setPrefix + prefix + href
+				}
+			} else {
+				if o.s3KeyPrefix == nil {
+					href = path.Join(o.httpRequest.URL.Path, url.QueryEscape(href))
+				} else {
+					href = path.Join(strings.TrimSuffix(o.httpRequest.URL.Path, *o.s3KeyPrefix), url.QueryEscape(href))
+				}
+			}
+
 			links = append(links, Link{
 				Name:         html.EscapeString(name),
-				Href:         path.Join(o.httpRequest.URL.Path, url.QueryEscape(name)),
+				Href:         path.Clean(href),
 				Size:         sizeHuman,
 				LastModified: object.LastModified.Format(time.RFC1123),
 			})
@@ -288,19 +362,13 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 	buf := bytes.Buffer{}
 
-	titlePrefix := prefix
-
-	if o.s3KeyPrefix != nil {
-		titlePrefix = strings.TrimPrefix(titlePrefix, *o.s3KeyPrefix)
-	}
-
 	err = t.Execute(&buf, struct {
 		Title  string
 		Prefix string
 		Links  []Link
 	}{
 		Title:  o.httpRequest.Host,
-		Prefix: strings.Trim(titlePrefix, "/") + "/",
+		Prefix: titlePrefix,
 		Links:  links,
 	})
 
