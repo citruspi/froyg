@@ -356,19 +356,21 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	buf := bytes.Buffer{}
 
 	err = conf.CPITemplate.Execute(&buf, struct {
-		Title   string
-		Prefix  string
-		Message string
-		Footer  string
-		Root    bool
-		Links   []Link
+		Title     string
+		TitleLink string
+		Prefix    string
+		Message   string
+		Footer    string
+		Root      bool
+		Links     []Link
 	}{
-		Title:   o.httpRequest.Host,
-		Prefix:  titlePrefix,
-		Message: conf.CPIMsg,
-		Footer:  conf.CPIFooter,
-		Root:    root,
-		Links:   links,
+		Title:     o.httpRequest.Host,
+		TitleLink: o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-LINK"),
+		Prefix:    titlePrefix,
+		Message:   conf.CPIMsg,
+		Footer:    conf.CPIFooter,
+		Root:      root,
+		Links:     links,
 	})
 
 	if err != nil {

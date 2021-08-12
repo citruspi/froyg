@@ -65,7 +65,7 @@ const (
 	</head>
 	<body>
 		<div class="container">
-			<h3>{{ .Title }} <span id="title-separator">&#10031;</span> {{ .Prefix }}</h3>
+			<h3>{{if gt (len .TitleLink) 0}}<a href="{{.TitleLink}}">{{ .Title }}</a>{{else}}{{ .Title }}{{end}} <span id="title-separator">&#10031;</span> {{ .Prefix }}</h3>
 			{{if .Root }}{{if gt (len .Message) 0}}<div id="message">{{ .Message }}</div>{{end}}{{end}}
 			<table>
 				<thead>
