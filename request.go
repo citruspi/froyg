@@ -203,6 +203,11 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 		LastModified string
 	}
 
+	type PrefixLink struct {
+		Name string
+		Href string
+	}
+
 	var links []Link
 
 	prefix = strings.TrimPrefix(prefix, "/")
@@ -228,6 +233,33 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 	if titlePrefix == "." {
 		titlePrefix = ""
+	}
+
+	var titlePrefixComponents []PrefixLink
+	var titlePrefixComponentHref string
+
+	titlePrefixSplit := strings.Split(titlePrefix, "/")
+	titlePrefixComponentsReversed := make([]PrefixLink, len(titlePrefixSplit))
+
+	for i := len(titlePrefixSplit) - 1; i >= 0; i-- {
+		if len(titlePrefixSplit[i]) == 0 {
+			continue
+		}
+
+		titlePrefixComponentsReversed = append(titlePrefixComponentsReversed, PrefixLink{
+			Name: titlePrefixSplit[i],
+			Href: titlePrefixComponentHref,
+		})
+
+		titlePrefixComponentHref += "../"
+	}
+
+	for i := len(titlePrefixComponentsReversed) - 1; i >= 0; i-- {
+		if len(titlePrefixComponentsReversed[i].Name) == 0 {
+			continue
+		}
+
+		titlePrefixComponents = append(titlePrefixComponents, titlePrefixComponentsReversed[i])
 	}
 
 	if setUpUpAndAway == "AND-AWAY" || !root && ((o.s3KeyPrefix == nil && prefix != "") || (o.s3KeyPrefix != nil && len(strings.Trim(strings.TrimPrefix(prefix, *o.s3KeyPrefix), "/")) > 0)) {
@@ -358,7 +390,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	err = conf.CPITemplate.Execute(&buf, struct {
 		Title     string
 		TitleLink string
-		Prefix    string
+		Prefix    []PrefixLink
 		Message   string
 		Footer    string
 		Root      bool
@@ -366,7 +398,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	}{
 		Title:     o.httpRequest.Host,
 		TitleLink: o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-LINK"),
-		Prefix:    titlePrefix,
+		Prefix:    titlePrefixComponents,
 		Message:   conf.CPIMsg,
 		Footer:    conf.CPIFooter,
 		Root:      root,
