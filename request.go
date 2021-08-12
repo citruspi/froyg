@@ -616,7 +616,14 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int, int64)
 	object, status := o.upstreamRequest()
 
 	if status != http.StatusOK {
-		return nil, map[string]string{"Content-Length": "0"}, status, size
+		switch status {
+		case http.StatusNotFound:
+			object = fauxS3ObjectOutput([]byte("object not found"))
+		case http.StatusInternalServerError:
+			object = fauxS3ObjectOutput([]byte("internal server error"))
+		default:
+			return nil, map[string]string{"Content-Length": "0"}, status, size
+		}
 	}
 
 	headers := make(map[string]string)
