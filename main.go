@@ -134,6 +134,21 @@ var (
 
 	prometheusBind *string = nil
 
+	prometheusS3Requests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_requests",
+		Help: "S3 API call count",
+	}, []string{"region", "bucket", "path", "operation"})
+
+	prometheusS3Elapsed = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_elapsed",
+		Help: "S3 response time (ms)",
+	}, []string{"region", "bucket", "path", "operation"})
+
+	prometheusS3Size = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_size",
+		Help: "S3 object size (bytes)",
+	}, []string{"region", "bucket", "path"})
+
 	prometheusHTTPResponseCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "froyg_http_count",
 		Help: "HTTP response count",

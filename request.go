@@ -403,6 +403,11 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 			time.Now()))
 	}
 
+	if prometheusBind != nil && len(*prometheusBind) > 0 {
+		prometheusS3Elapsed.WithLabelValues(o.s3Region, *listObjectsInput.Bucket, *listObjectsInput.Prefix, "ListObjectsV2").Add(float64(time.Since(started).Milliseconds()))
+		prometheusS3Requests.WithLabelValues(o.s3Region, *listObjectsInput.Bucket, *listObjectsInput.Prefix, "ListObjectsV2").Add(float64(apiCalls))
+	}
+
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -537,6 +542,18 @@ func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
 				"elapsed":   time.Since(started).Milliseconds(),
 			},
 			time.Now()))
+	}
+
+	if prometheusBind != nil && len(*prometheusBind) > 0 {
+		var size int64
+
+		if object != nil && object.ContentLength != nil {
+			size = *object.ContentLength
+		}
+
+		prometheusS3Size.WithLabelValues(o.s3Region, *o.s3ObjectRequest.Bucket, *o.s3ObjectRequest.Key).Add(float64(size))
+		prometheusS3Elapsed.WithLabelValues(o.s3Region, *o.s3ObjectRequest.Bucket, *o.s3ObjectRequest.Key, "GetObject").Add(float64(time.Since(started).Milliseconds()))
+		prometheusS3Requests.WithLabelValues(o.s3Region, *o.s3ObjectRequest.Bucket, *o.s3ObjectRequest.Key, "GetObject").Inc()
 	}
 
 	status := http.StatusOK
