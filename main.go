@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,6 +18,7 @@ type Configuration struct {
 	IndexFile   string
 	ServeWww    bool
 	AutoIndex   bool
+	CPITemplate *template.Template
 	CPIMsg      string
 	CPIFooter   string
 }
@@ -159,6 +161,14 @@ func init() {
 			Region: aws.String(region),
 		})))
 	}
+
+	t, err := template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
+
+	if err != nil {
+		log.Fatalln("failed to parse common prefix index template")
+	}
+
+	conf.CPITemplate = t
 }
 
 func main() {

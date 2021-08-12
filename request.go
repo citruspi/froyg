@@ -11,7 +11,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -197,12 +196,6 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	setTitlePrefix := o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-PREFIX")
 	setUpUpAndAway := o.httpRequest.Header.Get("X-FROYG-AICP-UP-UP")
 
-	t, err := template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
-
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
-	}
-
 	type Link struct {
 		Name         string
 		Href         string
@@ -260,7 +253,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 	var n int
 
-	err = s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
+	err := s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
 		for _, p := range output.CommonPrefixes {
 			n += 1
 
@@ -362,7 +355,7 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 	buf := bytes.Buffer{}
 
-	err = t.Execute(&buf, struct {
+	err = conf.CPITemplate.Execute(&buf, struct {
 		Title   string
 		Prefix  string
 		Message string
