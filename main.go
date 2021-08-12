@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/influxdata/influxdb-client-go/v2"
+	influxAPI "github.com/influxdata/influxdb-client-go/v2/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -123,6 +125,8 @@ var (
 	s3conn = make(map[string]*s3.S3)
 
 	conf = &Configuration{}
+
+	influxDB influxAPI.WriteAPI = nil
 )
 
 func init() {
@@ -133,6 +137,12 @@ func init() {
 	flag.StringVar(&conf.CPIMsg, "auto-index-msg-html", "", "common prefixes index HTML message")
 	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
 	flag.StringVar(&conf.CPICacheControl, "auto-index-cache-control", "", "common prefixes index Cache-Control header")
+
+	influxDBHost := flag.String("influxdb2-host", "", "InfluxDB 2 server address")
+	influxDBToken := flag.String("influxdb2-token", "", "InfluxDB 2 write token")
+	influxDBOrg := flag.String("influxdb2-org", "", "InfluxDB 2 organization")
+	influxDBBucket := flag.String("influxdb2-bucket", "", "InfluxDB 2 bucket")
+	influxDBBatchSize := flag.Int("influxdb2-batch-size", 100, "InfluxDB 2  write batch size")
 
 	cpiTemplatePath := flag.String("auto-index-template", "", "path to custom template for common prefix index")
 	versionFlag := flag.Bool("version", false, "show version and exit")
@@ -186,6 +196,13 @@ func init() {
 	}
 
 	conf.CPITemplate = t
+
+	if influxDBHost != nil && influxDBToken != nil && influxDBOrg != nil && influxDBBucket != nil {
+		client := influxdb2.NewClientWithOptions(*influxDBHost, *influxDBToken,
+			influxdb2.DefaultOptions().SetBatchSize(uint(*influxDBBatchSize)))
+
+		influxDB = client.WriteAPI(*influxDBOrg, *influxDBBucket)
+	}
 }
 
 func main() {

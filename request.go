@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"html"
 	"io"
 	"net/http"
@@ -521,11 +522,12 @@ func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
 	return object, status, err
 }
 
-func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
+func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int, int64) {
+	var size int64
 	object, status := o.upstreamRequest()
 
 	if status != http.StatusOK {
-		return nil, map[string]string{"Content-Length": "0"}, status
+		return nil, map[string]string{"Content-Length": "0"}, status, size
 	}
 
 	headers := make(map[string]string)
@@ -554,15 +556,17 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 
 	if object.ContentLength == nil {
 		headers["Content-Length"] = "0"
+		size = 0
 	} else {
 		headers["Content-Length"] = strconv.FormatInt(*object.ContentLength, 10)
+		size = *object.ContentLength
 	}
 
-	return object.Body, headers, http.StatusOK
+	return object.Body, headers, http.StatusOK, size
 }
 
 func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
-	body, headers, status := o.fetchObject()
+	body, headers, status, size := o.fetchObject()
 
 	o.log.WithFields(logrus.Fields{
 		"resp_headers":     headers,
@@ -577,6 +581,20 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 
 	w.Header().Set("X-Request-Id", o.log.Data["request_id"].(string))
 	w.WriteHeader(status)
+
+	if influxDB != nil {
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_http",
+			map[string]string{
+				"url_host": o.httpRequest.Host,
+				"url_path": o.httpRequest.URL.Path,
+				"status":   fmt.Sprintf("%d", status),
+			},
+			map[string]interface{}{
+				"size": size,
+			},
+			time.Now()))
+	}
 
 	if body == nil {
 		return
