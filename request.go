@@ -33,6 +33,15 @@ type objectRequest struct {
 	s3KeyPrefix     *string
 }
 
+func fauxS3ObjectOutput(contents []byte) *s3.GetObjectOutput {
+	size := int64(len(contents))
+
+	return &s3.GetObjectOutput{
+		Body:          io.NopCloser(bytes.NewBuffer(contents)),
+		ContentLength: &size,
+	}
+}
+
 func httpHandler(w http.ResponseWriter, r *http.Request) {
 	requestId := r.Header.Get("X-Request-Id")
 
@@ -488,12 +497,7 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 		}
 
 		if status == 0 {
-			var length int64
-
-			return &s3.GetObjectOutput{
-				Body:          nil,
-				ContentLength: &length,
-			}, http.StatusNotFound
+			return fauxS3ObjectOutput([]byte{}), http.StatusNotFound
 		}
 	} else {
 		object, status, err = o.getObject()
