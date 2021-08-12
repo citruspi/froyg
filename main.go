@@ -22,14 +22,15 @@ import (
 )
 
 type Configuration struct {
-	BindAddress     string
-	IndexFile       string
-	ServeWww        bool
-	AutoIndex       bool
-	CPITemplate     *template.Template
-	CPIMsg          string
-	CPIFooter       string
-	CPICacheControl string
+	BindAddress      string
+	IndexFile        string
+	ServeWww         bool
+	AutoIndex        bool
+	CPITemplate      *template.Template
+	CPIMsg           string
+	CPIFooter        string
+	CPICacheControl  string
+	OptFileExpectExt bool
 }
 
 const (
@@ -173,6 +174,7 @@ func init() {
 	flag.StringVar(&conf.CPIMsg, "auto-index-msg-html", "", "common prefixes index HTML message")
 	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
 	flag.StringVar(&conf.CPICacheControl, "auto-index-cache-control", "", "common prefixes index Cache-Control header")
+	flag.BoolVar(&conf.OptFileExpectExt, "opt-file-expect-ext", false, "Expect file names to contain a file extension")
 
 	influxDBHost := flag.String("influxdb2-host", "http://localhost:8086", "InfluxDB 2 server address")
 	influxDBToken := flag.String("influxdb2-token", "", "InfluxDB 2 write token")

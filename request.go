@@ -464,7 +464,7 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 
 	k := strings.TrimSpace(*o.s3ObjectRequest.Key)
 
-	if k[len(k)-1:] == "/" {
+	if k[len(k)-1:] == "/" || conf.OptFileExpectExt && len(path.Ext(k)) == 0 {
 		if conf.ServeWww {
 			k_mod := path.Join(k, conf.IndexFile)
 			o.s3ObjectRequest.Key = &k_mod
@@ -473,10 +473,14 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 		}
 
 		if conf.AutoIndex && (status == http.StatusNotFound || status == 0) {
-			index, status, err := o.indexCommonPrefix(k)
+			if k[len(k)-1:] == "/" {
+				object, status, err = o.indexCommonPrefix(k)
+			} else {
+				object, status, err = o.indexCommonPrefix(k + "/")
+			}
 
 			if err == nil {
-				return index, status
+				return object, status
 			} else {
 				logrus.WithError(err).Errorln("failed to index common prefix")
 				return nil, status
@@ -493,6 +497,10 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 		}
 	} else {
 		object, status, err = o.getObject()
+
+		if status == http.StatusNotFound && len(path.Ext(k)) > 0 && conf.OptFileExpectExt {
+			return object, status
+		}
 
 		if status == http.StatusNotFound && conf.ServeWww {
 			k_mod := path.Join(k, conf.IndexFile)
