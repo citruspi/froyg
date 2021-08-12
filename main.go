@@ -16,13 +16,14 @@ import (
 )
 
 type Configuration struct {
-	BindAddress string
-	IndexFile   string
-	ServeWww    bool
-	AutoIndex   bool
-	CPITemplate *template.Template
-	CPIMsg      string
-	CPIFooter   string
+	BindAddress     string
+	IndexFile       string
+	ServeWww        bool
+	AutoIndex       bool
+	CPITemplate     *template.Template
+	CPIMsg          string
+	CPIFooter       string
+	CPICacheControl string
 }
 
 const (
@@ -131,6 +132,7 @@ func init() {
 	flag.BoolVar(&conf.AutoIndex, "auto-index", false, "auto index common prefixes")
 	flag.StringVar(&conf.CPIMsg, "auto-index-msg-html", "", "common prefixes index HTML message")
 	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
+	flag.StringVar(&conf.CPICacheControl, "auto-index-cache-control", "", "common prefixes index Cache-Control header")
 
 	cpiTemplatePath := flag.String("auto-index-template", "", "path to custom template for common prefix index")
 	versionFlag := flag.Bool("version", false, "show version and exit")

@@ -412,10 +412,17 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	length := int64(buf.Len())
 	type_ := "text/html"
 
+	var cacheControlHeader *string
+
+	if len(conf.CPICacheControl) > 0 {
+		cacheControlHeader = &conf.CPICacheControl
+	}
+
 	return &s3.GetObjectOutput{
 		Body:          io.NopCloser(&buf),
 		ContentLength: &length,
 		ContentType:   &type_,
+		CacheControl:  cacheControlHeader,
 	}, http.StatusOK, nil
 }
 
