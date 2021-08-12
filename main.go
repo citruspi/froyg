@@ -15,6 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/influxdata/influxdb-client-go/v2"
 	influxAPI "github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -128,6 +131,38 @@ var (
 	conf = &Configuration{}
 
 	influxDB influxAPI.WriteAPI = nil
+
+	prometheusBind *string = nil
+
+	prometheusS3Requests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_requests",
+		Help: "S3 API call count",
+	}, []string{"region", "bucket", "path", "operation"})
+
+	prometheusS3Elapsed = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_elapsed",
+		Help: "S3 response time (ms)",
+	}, []string{"region", "bucket", "path", "operation"})
+
+	prometheusS3Size = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_s3_size",
+		Help: "S3 object size (bytes)",
+	}, []string{"region", "bucket", "path"})
+
+	prometheusHTTPResponseCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_http_count",
+		Help: "HTTP response count",
+	}, []string{"url_host", "url_path", "status"})
+
+	prometheusHTTPResponseSize = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_http_size",
+		Help: "HTTP response size (bytes)",
+	}, []string{"url_host", "url_path", "status"})
+
+	prometheusHTTPResponseElapsed = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "froyg_http_elapsed",
+		Help: "HTTP response time (ms)",
+	}, []string{"url_host", "url_path", "status"})
 )
 
 func init() {
@@ -146,6 +181,7 @@ func init() {
 	influxDBBatchSize := flag.Uint("influxdb2-batch-size", 100, "InfluxDB 2 write batch size")
 	influxDBFlushInterval := flag.Uint("influxdb2-flush-interval", 1000, "InfluxDB 2 flush interval (ms)")
 	influxDBPrecision := flag.String("influxdb2-precision", "ns", "InfluxDB 2 precision (ns, μs, ms, or s)")
+	prometheusBind = flag.String("prometheus-bind", "", "Prometheus bind address")
 
 	cpiTemplatePath := flag.String("auto-index-template", "", "path to custom template for common prefix index")
 	versionFlag := flag.Bool("version", false, "show version and exit")
@@ -230,6 +266,24 @@ func init() {
 }
 
 func main() {
+	if prometheusBind != nil && len(*prometheusBind) > 0 {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.Handler())
+
+		server := http.Server{
+			Addr:    *prometheusBind,
+			Handler: mux,
+		}
+
+		go func() {
+			err := server.ListenAndServe()
+
+			if err != nil {
+				log.WithError(err).Fatalln("failed to start Prometheus HTTP server")
+			}
+		}()
+	}
+
 	http.HandleFunc("/", httpHandler)
 
 	log.Fatalln(http.ListenAndServe(conf.BindAddress, nil))
