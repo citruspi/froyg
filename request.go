@@ -288,8 +288,13 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	}).Debugln("indexing prefix")
 
 	var n int
+	var apiCalls int
+
+	started := time.Now()
 
 	err := s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
+		apiCalls += 1
+
 		for _, p := range output.CommonPrefixes {
 			n += 1
 
@@ -380,6 +385,23 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 		return true
 	})
+
+	if influxDB != nil {
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_s3",
+			map[string]string{
+				"action": "ListObjectsV2",
+				"region": o.s3Region,
+				"bucket": *listObjectsInput.Bucket,
+				"prefix": *listObjectsInput.Prefix,
+			},
+			map[string]interface{}{
+				"api_calls": apiCalls,
+				"elements":  n,
+				"elapsed":   time.Since(started).Milliseconds(),
+			},
+			time.Now()))
+	}
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -485,13 +507,39 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 }
 
 func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
-	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
-	status := http.StatusOK
-
 	o.log.WithFields(logrus.Fields{
 		"s3_region":     o.s3Region,
 		"s3_object_req": o.s3ObjectRequest,
 	}).Debugln("getting S3 object")
+
+	started := time.Now()
+
+	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
+
+	if influxDB != nil {
+		var size int64
+
+		if object != nil && object.ContentLength != nil {
+			size = *object.ContentLength
+		}
+
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_s3",
+			map[string]string{
+				"action": "GetObject",
+				"region": o.s3Region,
+				"bucket": *o.s3ObjectRequest.Bucket,
+				"key":    *o.s3ObjectRequest.Key,
+			},
+			map[string]interface{}{
+				"api_calls": 1,
+				"size":      size,
+				"elapsed":   time.Since(started).Milliseconds(),
+			},
+			time.Now()))
+	}
+
+	status := http.StatusOK
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
