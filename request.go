@@ -42,6 +42,12 @@ func fauxS3ObjectOutput(contents []byte) *s3.GetObjectOutput {
 	}
 }
 
+func isNonStandardFile(name string) bool {
+	_, ok := filesWithoutFileExtensions[name]
+
+	return ok
+}
+
 func httpHandler(w http.ResponseWriter, r *http.Request) {
 	requestId := r.Header.Get("X-Request-Id")
 
@@ -473,7 +479,7 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 
 	k := strings.TrimSpace(*o.s3ObjectRequest.Key)
 
-	if k[len(k)-1:] == "/" || conf.OptFileExpectExt && len(path.Ext(k)) == 0 {
+	if k[len(k)-1:] == "/" || (conf.OptFileExpectExt && len(path.Ext(k)) == 0 && !isNonStandardFile(path.Base(k))) {
 		if conf.ServeWww {
 			k_mod := path.Join(k, conf.IndexFile)
 			o.s3ObjectRequest.Key = &k_mod

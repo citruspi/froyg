@@ -164,6 +164,8 @@ var (
 		Name: "froyg_http_elapsed",
 		Help: "HTTP response time (ms)",
 	}, []string{"url_host", "url_path", "status"})
+
+	filesWithoutFileExtensions = make(map[string]interface{})
 )
 
 func init() {
@@ -176,6 +178,7 @@ func init() {
 	flag.StringVar(&conf.CPICacheControl, "auto-index-cache-control", "", "common prefixes index Cache-Control header")
 	flag.BoolVar(&conf.OptFileExpectExt, "opt-file-expect-ext", false, "Expect file names to contain a file extension")
 
+	filesSansFileExtensions := flag.String("opt-file-expect-sans-ext", "", "Comma delimited list of file names that do not contain file extensions")
 	influxDBHost := flag.String("influxdb2-host", "http://localhost:8086", "InfluxDB 2 server address")
 	influxDBToken := flag.String("influxdb2-token", "", "InfluxDB 2 write token")
 	influxDBOrg := flag.String("influxdb2-org", "", "InfluxDB 2 organization")
@@ -264,6 +267,16 @@ func init() {
 				log.WithError(err).Errorln("failed to write InfluxDB data points")
 			}
 		}()
+	}
+
+	if filesSansFileExtensions != nil {
+		for _, t := range strings.Split(*filesSansFileExtensions, ",") {
+			ts := strings.TrimSpace(t)
+
+			if len(ts) > 0 {
+				filesWithoutFileExtensions[strings.TrimSpace(ts)] = nil
+			}
+		}
 	}
 }
 
