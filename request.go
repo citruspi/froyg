@@ -482,6 +482,15 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 				return nil, status
 			}
 		}
+
+		if status == 0 {
+			var length int64
+
+			return &s3.GetObjectOutput{
+				Body:          nil,
+				ContentLength: &length,
+			}, http.StatusNotFound
+		}
 	} else {
 		object, status, err = o.getObject()
 
