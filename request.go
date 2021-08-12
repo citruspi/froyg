@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"html"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 )
 
 type objectRequest struct {
+	started     time.Time
 	httpRequest *http.Request
 	log         *logrus.Entry
 
@@ -55,6 +57,8 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *objectRequest) readHttpRequest(r *http.Request) int {
+	o.started = time.Now()
+
 	var s3Region *string
 	var s3Bucket *string
 	var s3Key *string
@@ -284,8 +288,13 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	}).Debugln("indexing prefix")
 
 	var n int
+	var apiCalls int
+
+	started := time.Now()
 
 	err := s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
+		apiCalls += 1
+
 		for _, p := range output.CommonPrefixes {
 			n += 1
 
@@ -376,6 +385,23 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 
 		return true
 	})
+
+	if influxDB != nil {
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_s3",
+			map[string]string{
+				"action": "ListObjectsV2",
+				"region": o.s3Region,
+				"bucket": *listObjectsInput.Bucket,
+				"prefix": *listObjectsInput.Prefix,
+			},
+			map[string]interface{}{
+				"api_calls": apiCalls,
+				"elements":  n,
+				"elapsed":   time.Since(started).Milliseconds(),
+			},
+			time.Now()))
+	}
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -481,13 +507,39 @@ func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 }
 
 func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
-	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
-	status := http.StatusOK
-
 	o.log.WithFields(logrus.Fields{
 		"s3_region":     o.s3Region,
 		"s3_object_req": o.s3ObjectRequest,
 	}).Debugln("getting S3 object")
+
+	started := time.Now()
+
+	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
+
+	if influxDB != nil {
+		var size int64
+
+		if object != nil && object.ContentLength != nil {
+			size = *object.ContentLength
+		}
+
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_s3",
+			map[string]string{
+				"action": "GetObject",
+				"region": o.s3Region,
+				"bucket": *o.s3ObjectRequest.Bucket,
+				"key":    *o.s3ObjectRequest.Key,
+			},
+			map[string]interface{}{
+				"api_calls": 1,
+				"size":      size,
+				"elapsed":   time.Since(started).Milliseconds(),
+			},
+			time.Now()))
+	}
+
+	status := http.StatusOK
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -521,11 +573,12 @@ func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
 	return object, status, err
 }
 
-func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
+func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int, int64) {
+	var size int64
 	object, status := o.upstreamRequest()
 
 	if status != http.StatusOK {
-		return nil, map[string]string{"Content-Length": "0"}, status
+		return nil, map[string]string{"Content-Length": "0"}, status, size
 	}
 
 	headers := make(map[string]string)
@@ -554,15 +607,17 @@ func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
 
 	if object.ContentLength == nil {
 		headers["Content-Length"] = "0"
+		size = 0
 	} else {
 		headers["Content-Length"] = strconv.FormatInt(*object.ContentLength, 10)
+		size = *object.ContentLength
 	}
 
-	return object.Body, headers, http.StatusOK
+	return object.Body, headers, http.StatusOK, size
 }
 
 func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
-	body, headers, status := o.fetchObject()
+	body, headers, status, size := o.fetchObject()
 
 	o.log.WithFields(logrus.Fields{
 		"resp_headers":     headers,
@@ -579,10 +634,40 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 	w.WriteHeader(status)
 
 	if body == nil {
+		if influxDB != nil {
+			influxDB.WritePoint(influxdb2.NewPoint(
+				"froyg_http",
+				map[string]string{
+					"url_host": o.httpRequest.Host,
+					"url_path": o.httpRequest.URL.Path,
+					"status":   strconv.Itoa(status),
+				},
+				map[string]interface{}{
+					"size":    size,
+					"elapsed": time.Since(o.started).Milliseconds(),
+				},
+				time.Now()))
+		}
+
 		return
 	}
 
 	_, err := io.Copy(w, body)
+
+	if influxDB != nil {
+		influxDB.WritePoint(influxdb2.NewPoint(
+			"froyg_http",
+			map[string]string{
+				"url_host": o.httpRequest.Host,
+				"url_path": o.httpRequest.URL.Path,
+				"status":   strconv.Itoa(status),
+			},
+			map[string]interface{}{
+				"size":    size,
+				"elapsed": time.Since(o.started).Milliseconds(),
+			},
+			time.Now()))
+	}
 
 	if err != nil {
 		o.log.WithField("error", err).Warnln("error writing response body")
