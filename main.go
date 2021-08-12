@@ -220,6 +220,12 @@ func init() {
 			influxdb2.DefaultOptions().SetBatchSize(*influxDBBatchSize).SetFlushInterval(*influxDBFlushInterval).SetPrecision(precision))
 
 		influxDB = client.WriteAPI(*influxDBOrg, *influxDBBucket)
+
+		go func() {
+			for err := range influxDB.Errors() {
+				log.WithError(err).Errorln("failed to write InfluxDB data points")
+			}
+		}()
 	}
 }
 
