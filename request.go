@@ -363,13 +363,19 @@ func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, i
 	buf := bytes.Buffer{}
 
 	err = t.Execute(&buf, struct {
-		Title  string
-		Prefix string
-		Links  []Link
+		Title   string
+		Prefix  string
+		Message string
+		Footer  string
+		Root    bool
+		Links   []Link
 	}{
-		Title:  o.httpRequest.Host,
-		Prefix: titlePrefix,
-		Links:  links,
+		Title:   o.httpRequest.Host,
+		Prefix:  titlePrefix,
+		Message: conf.CPIMsg,
+		Footer:  conf.CPIFooter,
+		Root:    root,
+		Links:   links,
 	})
 
 	if err != nil {

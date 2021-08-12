@@ -17,6 +17,8 @@ type Configuration struct {
 	IndexFile   string
 	ServeWww    bool
 	AutoIndex   bool
+	CPIMsg      string
+	CPIFooter   string
 }
 
 const (
@@ -27,52 +29,62 @@ const (
 		<meta charset="UTF-8">
 		<style>
 			body { font-family: monospace; font-size: 110%; }
-			table { border-collapse: collapse; }
+			table { width: 100%; border-collapse: collapse; }
 			strong#title { margin-bottom: 1rem; }
 			th { text-align: left; padding: 0.5rem 15px; font-size: 110%; }
 			thead > tr { border-bottom: 1.5px solid #131313; }
 			thead > tr > th { padding-bottom: 0.5rem; }
-			tbody > tr > td { padding: 0.25rem 15px; }
+			tbody > tr > td { padding: 0.25rem 15px; overflow: scroll; }
 			tbody > tr:first-child td { padding-top: 0.5rem; }
-			tr:nth-child(even) { background-color: #EDEDED; }
+			tr:nth-child(even), div#message { background-color: #EDEDED; }
 			th#name { min-width: 175px; padding-right: 1rem; }
-			th#size { min-width: 75px; padding-right: 1rem; }
+			th#size { min-width: 75px; max-width: 100px; padding-right: 1rem; }
 			td#size { text-align: right; }
 			th#lmod { min-width: 250px; }
 			a, span#title-separator { color: #FF0000; text-decoration: none; }
 			a:visited { color: #8100FF; }
 			h3 { font-size: 125%; margin-top: 0; margin-bottom: 5px; }
 			span#title-separator { font-size: 140%; }
+			div#message { padding: 10px; margin: 10px 0; overflow: wrap; }
+			div#footer { margin-top: 1.5rem; margin-bottom: 1rem; }
+			div.container { width: 100%; max-width: 800px; overflow: scroll; }
+			code { color: white; }
+			p > code { background-color: grey; padding: 2px 3px; }
+			pre { background-color: grey; padding: 5px; }
 
 			@media (prefers-color-scheme: dark) {
 				body { background-color: #131313; color: white; }
 				thead > tr { border-bottom-color: white; }
 				a, span#title-separator { color: #FFCD00; }
 				a:visited { color: #FF9800; }
-				tr:nth-child(even) { background-color: #2A2A2A; }
+				tr:nth-child(even), div#message { background-color: #2A2A2A; }
 			}
 		</style>
 	</head>
 	<body>
-		<h3>{{ .Title }} <span id="title-separator">&#10031;</span> {{ .Prefix }}</h3>
-		<table>
-			<thead>
-				<tr>
-					<th id="name">Name</th>
-					<th id="size">Size</th>
-					<th id="lmod">Last Modified</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{range .Links}}
-				<tr>
-					<td><a href="{{ .Href }}">{{ .Name }}</a></td>
-					<td id="size">{{ .Size }}</td>
-					<td>{{ .LastModified }}</td>
-				</tr>
-				{{end}}
-			</tbody>
-		</table>
+		<div class="container">
+			<h3>{{ .Title }} <span id="title-separator">&#10031;</span> {{ .Prefix }}</h3>
+			{{if .Root }}{{if gt (len .Message) 0}}<div id="message">{{ .Message }}</div>{{end}}{{end}}
+			<table>
+				<thead>
+					<tr>
+						<th id="name">Name</th>
+						<th id="size">Size</th>
+						<th id="lmod">Last Modified</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Links}}
+					<tr>
+						<td><a href="{{ .Href }}">{{ .Name }}</a></td>
+						<td id="size">{{ .Size }}</td>
+						<td>{{ .LastModified }}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+			{{if gt (len .Footer) 0}}<div id="footer">{{ .Footer }}</div>{{end}}
+		</div>
 	</body>
 </html>`
 )
@@ -113,6 +125,8 @@ func init() {
 	flag.StringVar(&conf.IndexFile, "index", "index.html", "index file")
 	flag.BoolVar(&conf.ServeWww, "www", false, "act as web server")
 	flag.BoolVar(&conf.AutoIndex, "auto-index", false, "auto index common prefixes")
+	flag.StringVar(&conf.CPIMsg, "auto-index-msg-html", "", "common prefixes index HTML message")
+	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
 
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	logJson := flag.Bool("log-json", false, "json log format")
