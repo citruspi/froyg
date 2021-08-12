@@ -22,6 +22,7 @@ import (
 )
 
 type objectRequest struct {
+	started     time.Time
 	httpRequest *http.Request
 	log         *logrus.Entry
 
@@ -56,6 +57,8 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *objectRequest) readHttpRequest(r *http.Request) int {
+	o.started = time.Now()
+
 	var s3Region *string
 	var s3Bucket *string
 	var s3Key *string
@@ -582,25 +585,41 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 	w.Header().Set("X-Request-Id", o.log.Data["request_id"].(string))
 	w.WriteHeader(status)
 
+	if body == nil {
+		if influxDB != nil {
+			influxDB.WritePoint(influxdb2.NewPoint(
+				"froyg_http",
+				map[string]string{
+					"url_host": o.httpRequest.Host,
+					"url_path": o.httpRequest.URL.Path,
+					"status":   strconv.Itoa(status),
+				},
+				map[string]interface{}{
+					"size":    size,
+					"elapsed": time.Since(o.started).Milliseconds(),
+				},
+				time.Now()))
+		}
+
+		return
+	}
+
+	_, err := io.Copy(w, body)
+
 	if influxDB != nil {
 		influxDB.WritePoint(influxdb2.NewPoint(
 			"froyg_http",
 			map[string]string{
 				"url_host": o.httpRequest.Host,
 				"url_path": o.httpRequest.URL.Path,
-				"status":   fmt.Sprintf("%d", status),
+				"status":   strconv.Itoa(status),
 			},
 			map[string]interface{}{
-				"size": size,
+				"size":    size,
+				"elapsed": time.Since(o.started).Milliseconds(),
 			},
 			time.Now()))
 	}
-
-	if body == nil {
-		return
-	}
-
-	_, err := io.Copy(w, body)
 
 	if err != nil {
 		o.log.WithField("error", err).Warnln("error writing response body")
