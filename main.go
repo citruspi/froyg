@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -138,11 +139,13 @@ func init() {
 	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
 	flag.StringVar(&conf.CPICacheControl, "auto-index-cache-control", "", "common prefixes index Cache-Control header")
 
-	influxDBHost := flag.String("influxdb2-host", "", "InfluxDB 2 server address")
+	influxDBHost := flag.String("influxdb2-host", "http://localhost:8086", "InfluxDB 2 server address")
 	influxDBToken := flag.String("influxdb2-token", "", "InfluxDB 2 write token")
 	influxDBOrg := flag.String("influxdb2-org", "", "InfluxDB 2 organization")
-	influxDBBucket := flag.String("influxdb2-bucket", "", "InfluxDB 2 bucket")
-	influxDBBatchSize := flag.Int("influxdb2-batch-size", 100, "InfluxDB 2  write batch size")
+	influxDBBucket := flag.String("influxdb2-bucket", "froyg", "InfluxDB 2 bucket")
+	influxDBBatchSize := flag.Uint("influxdb2-batch-size", 100, "InfluxDB 2 write batch size")
+	influxDBFlushInterval := flag.Uint("influxdb2-flush-interval", 1000, "InfluxDB 2 flush interval (ms)")
+	influxDBPrecision := flag.String("influxdb2-precision", "ns", "InfluxDB 2 precision (ns, μs, ms, or s)")
 
 	cpiTemplatePath := flag.String("auto-index-template", "", "path to custom template for common prefix index")
 	versionFlag := flag.Bool("version", false, "show version and exit")
@@ -197,9 +200,24 @@ func init() {
 
 	conf.CPITemplate = t
 
-	if influxDBHost != nil && influxDBToken != nil && influxDBOrg != nil && influxDBBucket != nil {
+	if influxDBToken != nil && len(*influxDBToken) > 0 && influxDBOrg != nil && len(*influxDBOrg) > 0 {
+		var precision time.Duration
+
+		switch *influxDBPrecision {
+		case "ns":
+			precision = time.Nanosecond
+		case "μs", "us":
+			precision = time.Microsecond
+		case "ms":
+			precision = time.Millisecond
+		case "s":
+			precision = time.Second
+		default:
+			log.WithField("precision", *influxDBPrecision).Fatalln("unsupported InfluxDB 2 precision")
+		}
+
 		client := influxdb2.NewClientWithOptions(*influxDBHost, *influxDBToken,
-			influxdb2.DefaultOptions().SetBatchSize(uint(*influxDBBatchSize)))
+			influxdb2.DefaultOptions().SetBatchSize(*influxDBBatchSize).SetFlushInterval(*influxDBFlushInterval).SetPrecision(precision))
 
 		influxDB = client.WriteAPI(*influxDBOrg, *influxDBBucket)
 	}
