@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"html"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	uuid "github.com/satori/go.uuid"
@@ -24,6 +28,7 @@ type objectRequest struct {
 	s3Bucket        *string
 	s3ObjectRequest *s3.GetObjectInput
 	s3Key           *string
+	s3KeyPrefix     *string
 }
 
 func httpHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +80,8 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 			if s3KeyPrefixHeader, ok := r.Header["X-S3-Key-Prefix"]; ok {
 				key := path.Join(s3KeyPrefixHeader[0], r.URL.Path)
 				s3Key = &key
+
+				o.s3KeyPrefix = &s3KeyPrefixHeader[0]
 			} else {
 				s3Key = &r.URL.Path
 			}
@@ -163,6 +170,7 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 		partNo = &partNoRaw
 	}
 
+	o.httpRequest = r
 	o.s3Region = *s3Region
 	o.s3ObjectRequest = &s3.GetObjectInput{
 		Bucket:            s3Bucket,
@@ -179,47 +187,322 @@ func (o *objectRequest) readHttpRequest(r *http.Request) int {
 	return http.StatusOK
 }
 
-func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, int) {
+func (o *objectRequest) indexCommonPrefix(prefix string) (*s3.GetObjectOutput, int, error) {
+	var root bool
+
+	cutPrefix := o.httpRequest.Header.Get("X-FROYG-AICP-CUT-PREFIX")
+	cutTitlePrefix := o.httpRequest.Header.Get("X-FROYG-AICP-CUT-TITLE-PREFIX")
+	setPrefix := o.httpRequest.Header.Get("X-FROYG-AICP-SET-PREFIX")
+	setTitlePrefix := o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-PREFIX")
+	setUpUpAndAway := o.httpRequest.Header.Get("X-FROYG-AICP-UP-UP")
+
+	type Link struct {
+		Name         string
+		Href         string
+		Size         string
+		LastModified string
+	}
+
+	type PrefixLink struct {
+		Name string
+		Href string
+	}
+
+	var links []Link
+
+	prefix = strings.TrimPrefix(prefix, "/")
+	titlePrefix := prefix
+
+	if o.s3KeyPrefix != nil {
+		titlePrefix = strings.TrimPrefix(titlePrefix, *o.s3KeyPrefix)
+	}
+
+	if cutTitlePrefix != "" {
+		titlePrefix = strings.TrimPrefix(titlePrefix, cutTitlePrefix)
+	}
+
+	if strings.Trim(titlePrefix, "/") == "" {
+		root = true
+	}
+
+	if setTitlePrefix != "" {
+		titlePrefix = setTitlePrefix + titlePrefix
+	}
+
+	titlePrefix = path.Clean(titlePrefix)
+
+	if titlePrefix == "." {
+		titlePrefix = ""
+	}
+
+	var titlePrefixComponents []PrefixLink
+	var titlePrefixComponentHref string
+
+	titlePrefixSplit := strings.Split(titlePrefix, "/")
+	titlePrefixComponentsReversed := make([]PrefixLink, len(titlePrefixSplit))
+
+	for i := len(titlePrefixSplit) - 1; i >= 0; i-- {
+		if len(titlePrefixSplit[i]) == 0 {
+			continue
+		}
+
+		titlePrefixComponentsReversed = append(titlePrefixComponentsReversed, PrefixLink{
+			Name: titlePrefixSplit[i],
+			Href: titlePrefixComponentHref,
+		})
+
+		titlePrefixComponentHref += "../"
+	}
+
+	for i := len(titlePrefixComponentsReversed) - 1; i >= 0; i-- {
+		if len(titlePrefixComponentsReversed[i].Name) == 0 {
+			continue
+		}
+
+		titlePrefixComponents = append(titlePrefixComponents, titlePrefixComponentsReversed[i])
+	}
+
+	if setUpUpAndAway == "AND-AWAY" || !root && ((o.s3KeyPrefix == nil && prefix != "") || (o.s3KeyPrefix != nil && len(strings.Trim(strings.TrimPrefix(prefix, *o.s3KeyPrefix), "/")) > 0)) {
+		links = append(links, Link{
+			Name:         ".. /",
+			Href:         "../",
+			Size:         "",
+			LastModified: "",
+		})
+	}
+
+	listObjectsInput := &s3.ListObjectsV2Input{
+		Bucket:    o.s3ObjectRequest.Bucket,
+		Delimiter: aws.String("/"),
+		MaxKeys:   aws.Int64(1000),
+		Prefix:    aws.String(prefix),
+	}
+
+	o.log.WithFields(logrus.Fields{
+		"s3_region":           o.s3Region,
+		"s3_list_objects_req": listObjectsInput,
+	}).Debugln("indexing prefix")
+
+	var n int
+
+	err := s3conn[o.s3Region].ListObjectsV2Pages(listObjectsInput, func(output *s3.ListObjectsV2Output, b bool) bool {
+		for _, p := range output.CommonPrefixes {
+			n += 1
+
+			name := strings.TrimPrefix(*p.Prefix, prefix)
+			href := name[:len(name)-1]
+
+			if o.s3KeyPrefix != nil {
+				prefix = strings.TrimPrefix(prefix, *o.s3KeyPrefix)
+				href = strings.TrimPrefix(href, *o.s3KeyPrefix)
+				name = strings.TrimPrefix(*p.Prefix, *o.s3KeyPrefix)
+			} else {
+				name = strings.TrimPrefix(*p.Prefix, prefix)
+			}
+
+			if len(cutPrefix) > 0 || len(setPrefix) > 0 {
+				if len(cutPrefix) > 0 {
+					href = strings.TrimPrefix(href, cutPrefix)
+				}
+
+				if len(setPrefix) > 0 {
+					href = setPrefix + prefix + href
+				}
+			} else {
+				href = path.Join(o.httpRequest.URL.Path, url.QueryEscape(href))
+			}
+
+			links = append(links, Link{
+				Name:         html.EscapeString(strings.Trim(name, "/")) + "/",
+				Href:         path.Clean(href) + "/",
+				Size:         "",
+				LastModified: "",
+			})
+		}
+
+		for _, object := range output.Contents {
+			if *object.Key == prefix && *object.Size == 0 {
+				continue
+			}
+
+			n += 1
+
+			name := strings.TrimPrefix(*object.Key, prefix)
+			href := name
+
+			sizeBytes := float64(*object.Size)
+			var sizeHuman string
+
+			if sizeBytes < 1000 {
+				sizeHuman = fmt.Sprintf("%d &nbsp;B", *object.Size)
+			} else if sizeBytes < 1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f KB", sizeBytes/1000.0)
+			} else if sizeBytes < 1000*1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f MB", sizeBytes/(1000*1000))
+			} else if sizeBytes < 1000*1000*1000*1000 {
+				sizeHuman = fmt.Sprintf("%.2f GB", sizeBytes/(1000*1000*1000))
+			} else {
+				sizeHuman = fmt.Sprintf("%.2f TB", sizeBytes/(1000*1000*1000*1000))
+			}
+
+			if o.s3KeyPrefix != nil {
+				prefix = strings.TrimPrefix(prefix, *o.s3KeyPrefix)
+				href = strings.TrimPrefix(href, *o.s3KeyPrefix)
+			}
+
+			if len(cutPrefix) > 0 || len(setPrefix) > 0 {
+				if len(cutPrefix) > 0 {
+					href = strings.TrimPrefix(href, cutPrefix)
+				}
+
+				if len(setPrefix) > 0 {
+					href = setPrefix + prefix + href
+				}
+			} else {
+				if o.s3KeyPrefix == nil {
+					href = path.Join(o.httpRequest.URL.Path, url.QueryEscape(href))
+				} else {
+					href = path.Join(strings.TrimSuffix(o.httpRequest.URL.Path, *o.s3KeyPrefix), url.QueryEscape(href))
+				}
+			}
+
+			links = append(links, Link{
+				Name:         html.EscapeString(name),
+				Href:         path.Clean(href),
+				Size:         sizeHuman,
+				LastModified: object.LastModified.Format(time.RFC1123),
+			})
+		}
+
+		return true
+	})
+
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	if n == 0 {
+		return nil, http.StatusNotFound, nil
+	}
+
+	buf := bytes.Buffer{}
+
+	err = conf.CPITemplate.Execute(&buf, struct {
+		Title     string
+		TitleLink string
+		Prefix    []PrefixLink
+		Message   string
+		Footer    string
+		Root      bool
+		Links     []Link
+	}{
+		Title:     o.httpRequest.Host,
+		TitleLink: o.httpRequest.Header.Get("X-FROYG-AICP-SET-TITLE-LINK"),
+		Prefix:    titlePrefixComponents,
+		Message:   conf.CPIMsg,
+		Footer:    conf.CPIFooter,
+		Root:      root,
+		Links:     links,
+	})
+
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	length := int64(buf.Len())
+	type_ := "text/html"
+
+	var cacheControlHeader *string
+
+	if len(conf.CPICacheControl) > 0 {
+		cacheControlHeader = &conf.CPICacheControl
+	}
+
+	return &s3.GetObjectOutput{
+		Body:          io.NopCloser(&buf),
+		ContentLength: &length,
+		ContentType:   &type_,
+		CacheControl:  cacheControlHeader,
+	}, http.StatusOK, nil
+}
+
+func (o *objectRequest) upstreamRequest() (*s3.GetObjectOutput, int) {
 	var object *s3.GetObjectOutput
 	var err error
-
-	status := http.StatusOK
+	var status int
 
 	k := strings.TrimSpace(*o.s3ObjectRequest.Key)
 
-	if conf.ServeWww && k[len(k)-1:] == "/" {
-		k = path.Join(k, conf.IndexFile)
-		o.s3ObjectRequest.Key = &k
-		secondPass = true
+	if k[len(k)-1:] == "/" {
+		if conf.ServeWww {
+			k_mod := path.Join(k, conf.IndexFile)
+			o.s3ObjectRequest.Key = &k_mod
+
+			object, status, err = o.getObject()
+		}
+
+		if conf.AutoIndex && (status == http.StatusNotFound || status == 0) {
+			index, status, err := o.indexCommonPrefix(k)
+
+			if err == nil {
+				return index, status
+			} else {
+				logrus.WithError(err).Errorln("failed to index common prefix")
+				return nil, status
+			}
+		}
+	} else {
+		object, status, err = o.getObject()
+
+		if status == http.StatusNotFound && conf.ServeWww {
+			k_mod := path.Join(k, conf.IndexFile)
+			o.s3ObjectRequest.Key = &k_mod
+
+			object, status, err = o.getObject()
+		}
+
+		if status == http.StatusNotFound && conf.AutoIndex {
+			index, status, err := o.indexCommonPrefix(k + "/")
+
+			if err == nil {
+				return index, status
+			} else {
+				logrus.WithError(err).Errorln("failed to index common prefix")
+				return nil, status
+			}
+		}
 	}
+
+	if err != nil {
+		logrus.WithError(err).Errorln("err was not nil")
+	}
+
+	return object, status
+}
+
+func (o *objectRequest) getObject() (*s3.GetObjectOutput, int, error) {
+	object, err := s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
+	status := http.StatusOK
 
 	o.log.WithFields(logrus.Fields{
 		"s3_region":     o.s3Region,
 		"s3_object_req": o.s3ObjectRequest,
-	}).Debugln("establishing upstream request")
-
-	object, err = s3conn[o.s3Region].GetObject(o.s3ObjectRequest)
+	}).Debugln("getting S3 object")
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-			case s3.ErrCodeNoSuchKey:
-				if secondPass || !conf.ServeWww {
-					status = http.StatusNotFound
-				} else {
-					gnuKey := path.Join(*o.s3ObjectRequest.Key, conf.IndexFile)
-					o.s3ObjectRequest.Key = &gnuKey
-
-					object, status = o.upstreamRequest(true)
-				}
-			case s3.ErrCodeNoSuchBucket:
+			case s3.ErrCodeNoSuchKey, s3.ErrCodeNoSuchBucket:
 				status = http.StatusNotFound
+				err = nil
 			default:
 				switch aerr.Code() {
 				case "NotModified":
 					status = http.StatusNotModified
+					err = nil
 				case "PreconditionFailed":
 					status = http.StatusPreconditionFailed
+					err = nil
 				default:
 					status = http.StatusInternalServerError
 				}
@@ -235,11 +518,11 @@ func (o *objectRequest) upstreamRequest(secondPass bool) (*s3.GetObjectOutput, i
 		}
 	}
 
-	return object, status
+	return object, status, err
 }
 
 func (o *objectRequest) fetchObject() (io.Reader, map[string]string, int) {
-	object, status := o.upstreamRequest(false)
+	object, status := o.upstreamRequest()
 
 	if status != http.StatusOK {
 		return nil, map[string]string{"Content-Length": "0"}, status
