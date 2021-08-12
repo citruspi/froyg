@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -130,6 +132,7 @@ func init() {
 	flag.StringVar(&conf.CPIMsg, "auto-index-msg-html", "", "common prefixes index HTML message")
 	flag.StringVar(&conf.CPIFooter, "auto-index-footer-html", "", "common prefixes index HTML footer")
 
+	cpiTemplatePath := flag.String("auto-index-template", "", "path to custom template for common prefix index")
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	logJson := flag.Bool("log-json", false, "json log format")
 	logLevel := flag.Int("v", 4, "verbosity (1-7; panic, fatal, error, warn, info, debug, trace)")
@@ -162,10 +165,22 @@ func init() {
 		})))
 	}
 
-	t, err := template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
+	var t *template.Template
+	var raw []byte
+	var err error
 
-	if err != nil {
-		log.Fatalln("failed to parse common prefix index template")
+	if cpiTemplatePath == nil || len(strings.TrimSpace(*cpiTemplatePath)) == 0 {
+		t, err = template.New("directory_index").Parse(DIR_INDEX_TEMPLATE)
+	} else {
+		raw, err = ioutil.ReadFile(*cpiTemplatePath)
+
+		if err == nil {
+			t, err = template.New("directory_index").Parse(string(raw))
+		}
+	}
+
+	if err != nil || t == nil {
+		log.WithError(err).Fatalln("failed to parse common prefix index template")
 	}
 
 	conf.CPITemplate = t
