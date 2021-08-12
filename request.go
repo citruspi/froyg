@@ -649,6 +649,12 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 				time.Now()))
 		}
 
+		if prometheusBind != nil && len(*prometheusBind) > 0 {
+			prometheusHTTPResponseSize.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Add(float64(size))
+			prometheusHTTPResponseElapsed.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Add(float64(time.Since(o.started).Milliseconds()))
+			prometheusHTTPResponseCount.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Inc()
+		}
+
 		return
 	}
 
@@ -667,6 +673,12 @@ func (o *objectRequest) writeHttpResponse(w http.ResponseWriter) {
 				"elapsed": time.Since(o.started).Milliseconds(),
 			},
 			time.Now()))
+	}
+
+	if prometheusBind != nil && len(*prometheusBind) > 0 {
+		prometheusHTTPResponseSize.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Add(float64(size))
+		prometheusHTTPResponseElapsed.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Add(float64(time.Since(o.started).Milliseconds()))
+		prometheusHTTPResponseCount.WithLabelValues(o.httpRequest.Host, o.httpRequest.URL.Path, strconv.Itoa(status)).Inc()
 	}
 
 	if err != nil {
