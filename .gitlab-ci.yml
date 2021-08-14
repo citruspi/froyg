@@ -1,169 +1,20 @@
-image: img.doom.fm/build/golang:latest-1.16.6-buster
-
-before_script:
-  - mkdir bin
 stages:
-  - test
-  - build
-  - xcompile
-  - release
+  - prerequisites
+  - compile
+  - package
 
-fmt:
-  stage: test
-  script:
-    - go fmt
+variables:
+  TARGET: all
+  PACKAGE: apk-all deb-all rpm-all tar-all zip-all
+  GO_VERSION: "1.16.6"
 
-vet:
-  stage: test
-  script:
-    - go vet -c 3
-
-build:
-  stage: build
-  script:
-    - go build -o bin/froyg -ldflags "-X main.version=$CI_COMMIT_SHA" .
-
-.xcompile:
-  stage: xcompile
-  script:
-    - export label="froyg-$GOOS.$GOARCH$XLABEL-$CI_COMMIT_TAG"
-    - rm -rf $label
-    - mkdir $label
-    - go build -o $label/froyg $XFLAGS $TAGS -ldflags "-w $XLDFLAGS -X main.version=$CI_COMMIT_TAG-$CI_COMMIT_SHORT_SHA" .
-    - cp LICENSE $label/
-    - tar cfJ $label.tar.xf $label
-  artifacts:
-    paths:
-      - "*.tar.xf"
-    expire_in: 1 day
-  only:
-    - tags
-
-linux_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=386
-
-linux_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=amd64
-
-linux_amd64_static:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=amd64
-    - export CGO_ENABLED=0
-    - export XFLAGS="-a"
-    - export XLABEL="_static"
-    - export TAGS="-tags netgo"
-    - export XLDFLAGS='-extldflags "-static"'
-  only:
-    changes:
-      - '.gitlab-ci.yml'
-
-linux_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=arm
-
-linux_arm64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=linux
-    - export GOARCH=arm64
-
-darwin_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=386
-
-darwin_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=darwin
-    - export GOARCH=amd64
-
-windows_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=windows
-    - export GOARCH=386
-
-windows_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=windows
-    - export GOARCH=amd64
-
-dragonfly_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=dragonfly
-    - export GOARCH=amd64
-
-freebsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=386
-
-freebsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=amd64
-
-freebsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=freebsd
-    - export GOARCH=arm
-
-netbsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=386
-
-netbsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=amd64
-
-netbsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=netbsd
-    - export GOARCH=arm
-
-openbsd_386:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=386
-
-openbsd_amd64:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=amd64
-
-openbsd_arm:
-  extends: .xcompile
-  before_script:
-    - export GOOS=openbsd
-    - export GOARCH=arm
-
-publish:
-  stage: release
-  script:
-    - publish
-  only:
-    - tags
+include:
+  - project: build/pipelines/golang
+    ref: dev/match-rust
+    file: prerequisites.yml
+  - project: build/pipelines/golang
+    ref: dev/match-rust
+    file: compile.yml
+  - project: build/pipelines/golang
+    ref: dev/match-rust
+    file: package.yml
